@@ -1,0 +1,8 @@
+export enum ClientStatus {
+  ACTIVE = 'ACTIVE',
+  PAYING = 'PAYING',
+  CANCELLED = 'CANCELLED',
+  RENEWED = 'RENEWED',
+  PAUSED = 'PAUSED',
+  FINISHED = 'FINISHED',
+}

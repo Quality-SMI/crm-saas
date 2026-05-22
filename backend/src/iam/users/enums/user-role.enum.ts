@@ -1,0 +1,10 @@
+export enum UserRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  DIRECTOR = 'DIRECTOR',
+  MANAGER = 'MANAGER',
+  FINANCIAL = 'FINANCIAL',
+  TECHNICAL = 'TECHNICAL',
+  WRITER = 'WRITER',
+  SALES = 'SALES',
+  CLIENT_PORTAL = 'CLIENT_PORTAL', // portal do cliente — Fase 2
+}

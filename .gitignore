@@ -1,0 +1,33 @@
+node_modules/
+dist/
+.next/
+.env
+.env.local
+*.key
+*.pem
+*.p8
+*.p12
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Build
+build/
+
+# Temp
+tmp/
+temp/

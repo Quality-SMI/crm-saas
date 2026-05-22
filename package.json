@@ -1,0 +1,24 @@
+{
+  "name": "crm-quality-smi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CRM Quality SMI — Plataforma moderna de gestão de clientes SEO",
+  "scripts": {
+    "backend:dev": "cd backend && npm run start:dev",
+    "frontend:dev": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
+    "backend:build": "cd backend && npm run build",
+    "frontend:build": "cd frontend && npm run build",
+    "docker:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
+    "docker:logs": "docker compose -f infrastructure/docker/docker-compose.yml logs -f",
+    "db:migrate": "cd backend && npm run migration:run",
+    "db:migrate:revert": "cd backend && npm run migration:revert",
+    "db:seed": "cd backend && npm run seed",
+    "test": "cd backend && npm run test",
+    "test:e2e": "cd backend && npm run test:e2e"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
