@@ -8,13 +8,16 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { User } from '../users/entities/user.entity';
 import { Session } from '../sessions/entities/session.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { MailModule } from '../../common/mail/mail.module';
 
 @Module({
   imports: [
     PassportModule,
     PermissionsModule,
-    TypeOrmModule.forFeature([User, Session]),
+    MailModule,
+    TypeOrmModule.forFeature([User, Session, PasswordResetToken]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

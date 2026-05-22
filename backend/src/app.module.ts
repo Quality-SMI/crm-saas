@@ -9,6 +9,10 @@ import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
 import jwtConfig from './config/jwt.config';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
+import { HealthModule } from './common/health/health.module';
+import { AuditModule } from './common/audit/audit.module';
+import { AuditInterceptor } from './common/audit/audit.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthModule } from './iam/auth/auth.module';
 import { UsersModule } from './iam/users/users.module';
 import { CrmModule } from './crm/crm.module';
@@ -44,6 +48,8 @@ import { PublicModule } from './public/public.module';
     UsersModule,
     CrmModule,
     PublicModule,
+    HealthModule,
+    AuditModule,
   ],
   providers: [
     {
@@ -53,6 +59,10 @@ import { PublicModule } from './public/public.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
 })

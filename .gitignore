@@ -3,10 +3,17 @@ dist/
 .next/
 .env
 .env.local
+.env.prod
+.env.production
 *.key
 *.pem
 *.p8
 *.p12
+
+# Infra secrets — nunca commitar
+infrastructure/keys/*
+!infrastructure/keys/.gitkeep
+infrastructure/nginx/htpasswd
 
 # Logs
 *.log

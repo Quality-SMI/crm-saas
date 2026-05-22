@@ -2,17 +2,25 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: true });
+
+  // Atrás de NGINX — confia em X-Forwarded-* (req.ip vira o IP real do cliente)
+  const httpAdapter = app.getHttpAdapter().getInstance();
+  if (typeof httpAdapter?.set === 'function') {
+    httpAdapter.set('trust proxy', 1);
+  }
 
   // Security
   app.use(helmet());
+  app.use(compression());
   app.use(cookieParser());
 
-  // CORS
+  // CORS — em prod, FRONTEND_URL é o domínio público; credentials para enviar cookie HttpOnly
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true,
@@ -27,6 +35,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      disableErrorMessages: process.env.NODE_ENV === 'production',
     }),
   );
 
@@ -36,15 +45,18 @@ async function bootstrap() {
       .setTitle('Quality SMI CRM API')
       .setDescription('API do CRM Quality SMI')
       .setVersion('1.0')
+      .addCookieAuth('access_token')
       .addBearerAuth()
       .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document);
   }
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`🚀 Backend rodando em http://localhost:${port}/api`);
-  console.log(`📚 Swagger em http://localhost:${port}/api/docs`);
+  const port = Number(process.env.PORT || 3000);
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Backend rodando na porta ${port} (prefix /api)`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`📚 Swagger em http://localhost:${port}/api/docs`);
+  }
 }
 bootstrap();

@@ -1,13 +1,40 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// AVISO: script legado de bootstrap. Para produção use as migrations TypeORM:
+//   docker exec -it crm-backend-prod npm run migration:run
+// Este script é mantido apenas como utilitário pontual de DEV ou para popular
+// um banco zerado quando os scripts de migração de dados legados (migrate-*)
+// precisam de schema pronto. Não rode em produção depois do primeiro deploy.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const { Client } = require('pg');
 
-const DB = {
-  host: '145.79.7.208',
-  port: 5430,
-  database: 'postgres',
-  user: 'postgres',
-  password: 'HJ2sYplU3G2FvPvVct7u2saWKNkEjb0yrGsLz9am5v6d1w062OmulMkOgqaAz0H8',
-  connectionTimeoutMillis: 15000,
-};
+// Carrega credenciais de env: prefer DATABASE_URL; fallback para PG* / SETUP_DB_*.
+// Nunca commitar credenciais reais. Use .env (gitignored) ou exporte no shell.
+try { require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') }); } catch (_) { /* dotenv opcional */ }
+
+const connectionString = process.env.DATABASE_URL || process.env.SETUP_DB_URL;
+
+const DB = connectionString
+  ? { connectionString, connectionTimeoutMillis: 15000 }
+  : {
+      host: process.env.PGHOST || process.env.SETUP_DB_HOST,
+      port: Number(process.env.PGPORT || process.env.SETUP_DB_PORT || 5432),
+      database: process.env.PGDATABASE || process.env.SETUP_DB_NAME || 'postgres',
+      user: process.env.PGUSER || process.env.SETUP_DB_USER,
+      password: process.env.PGPASSWORD || process.env.SETUP_DB_PASSWORD,
+      connectionTimeoutMillis: 15000,
+    };
+
+if (!connectionString && (!DB.host || !DB.user || !DB.password)) {
+  console.error(
+    '\n❌ Credenciais do banco não definidas.\n' +
+    '   Defina DATABASE_URL ou PGHOST/PGUSER/PGPASSWORD (ou SETUP_DB_*) antes de rodar.\n' +
+    '   Exemplo:\n' +
+    '     export DATABASE_URL="postgresql://user:senha@host:5432/postgres"\n' +
+    '     node scripts/setup-database.js\n'
+  );
+  process.exit(2);
+}
 
 // Cada item do array é executado como uma query independente
 const STEPS = [

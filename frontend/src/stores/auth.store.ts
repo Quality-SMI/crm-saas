@@ -40,8 +40,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const { data } = await api.post('/auth/login', { email, password });
-          const { access_token, user } = data.data;
-          sessionStorage.setItem('access_token', access_token);
+          const { user } = data.data;
+          // Token agora vive em cookie HttpOnly — gerenciado pelo browser/backend.
           set({ user, isAuthenticated: true, isLoading: false });
         } catch (err) {
           set({ isLoading: false });
@@ -53,7 +53,6 @@ export const useAuthStore = create<AuthState>()(
         try {
           await api.post('/auth/logout');
         } finally {
-          sessionStorage.removeItem('access_token');
           set({ user: null, isAuthenticated: false });
         }
       },
