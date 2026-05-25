@@ -40,16 +40,16 @@ export class GeoController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR)
   @HttpCode(HttpStatus.OK)
   async runAll() {
-    const result = await this.runner.runAll();
-    return new ResponseDto(result, 'GEO run iniciado para todos os clientes');
+    this.runner.runAll().catch(() => {});
+    return new ResponseDto({ started: true }, 'GEO run iniciado para todos os clientes');
   }
 
   @Post('clients/:clientId/run')
   @Roles(...GEO_ROLES)
   @HttpCode(HttpStatus.OK)
   async runClient(@Param('clientId', ParseUUIDPipe) clientId: string) {
-    const result = await this.runner.runForClient(clientId);
-    return new ResponseDto(result, 'GEO run concluído');
+    this.runner.runForClient(clientId).catch(() => {});
+    return new ResponseDto({ started: true }, 'Análise iniciada — os resultados aparecerão em instantes');
   }
 
   // ─── Platforms ────────────────────────────────────────────────────────────

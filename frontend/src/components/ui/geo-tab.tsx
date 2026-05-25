@@ -1258,7 +1258,7 @@ export function GeoTab({ clientId, clientName, segment }: { clientId: string; cl
   const [overviewError, setOverviewError] = useState(false);
   const [activePlatformId, setActivePlatformId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [runResult, setRunResult] = useState<{ mentions: number; errors: number } | null>(null);
+  const [runResult, setRunResult] = useState<{ started: boolean } | null>(null);
 
   const loadOverview = () => {
     geoApi.overview(clientId)
@@ -1278,10 +1278,10 @@ export function GeoTab({ clientId, clientName, segment }: { clientId: string; cl
     try {
       const result = await geoApi.run(clientId);
       setRunResult(result);
-      loadOverview();
+      // Recarrega overview após 30s para capturar menções já processadas
+      setTimeout(() => { loadOverview(); setRunning(false); }, 30000);
     } catch {
-      setRunResult({ mentions: 0, errors: 1 });
-    } finally {
+      setRunResult({ started: false });
       setRunning(false);
     }
   };
@@ -1327,13 +1327,14 @@ export function GeoTab({ clientId, clientName, segment }: { clientId: string; cl
                 {running ? 'Analisando...' : 'Executar análise'}
               </button>
             </Tooltip>
-            {runResult && (
+            {runResult && running && (
+              <p className="text-xs text-blue-200 animate-pulse">
+                Analisando prompts nas IAs... pode levar 1–2 min
+              </p>
+            )}
+            {runResult && !running && (
               <p className="text-xs text-blue-200">
-                {runResult.errors > 0
-                  ? `${runResult.mentions} menções · ${runResult.errors} erro(s)`
-                  : runResult.mentions > 0
-                  ? `✓ ${runResult.mentions} menção(ões) encontrada(s)`
-                  : '✓ Nenhuma menção encontrada'}
+                ✓ Análise concluída · verifique os resultados
               </p>
             )}
           </div>

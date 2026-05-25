@@ -147,8 +147,8 @@ export const geoApi = {
     return apiClient.get<{ data: Array<{ score_date: string; visibility_score: string; geo_score: string; mention_count: string }> }>(`/geo/clients/${clientId}/timeline`).then(wrap);
   },
 
-  // Runner (automação LLM)
-  run(clientId: string): Promise<{ mentions: number; errors: number }> {
-    return apiClient.post<{ data: { mentions: number; errors: number } }>(`/geo/clients/${clientId}/run`).then(wrap);
+  // Runner (automação LLM) — retorna imediatamente, análise roda em background
+  run(clientId: string): Promise<{ started: boolean }> {
+    return apiClient.post<{ data: { started: boolean } }>(`/geo/clients/${clientId}/run`).then(wrap);
   },
 };
