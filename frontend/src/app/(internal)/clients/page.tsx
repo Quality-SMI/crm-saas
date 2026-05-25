@@ -11,11 +11,11 @@ import { Tooltip } from '@/components/ui/tooltip';
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   ACTIVE:    { label: 'Ativo',      color: 'bg-green-100 text-green-700' },
-  PAYING:    { label: 'Pagando',    color: 'bg-blue-100 text-blue-700' },
   CANCELLED: { label: 'Cancelado',  color: 'bg-red-100 text-red-700' },
   RENEWED:   { label: 'Renovado',   color: 'bg-purple-100 text-purple-700' },
   PAUSED:    { label: 'Pausado',    color: 'bg-yellow-100 text-yellow-700' },
   FINISHED:  { label: 'Encerrado', color: 'bg-gray-100 text-gray-600' },
+  PAYING:    { label: 'Ativo',      color: 'bg-green-100 text-green-700' },
 };
 
 export default function ClientsPage() {
@@ -147,7 +147,6 @@ export default function ClientsPage() {
         >
           <option value="">Todos os status</option>
           <option value="ACTIVE">Ativo</option>
-          <option value="PAYING">Pagando</option>
           <option value="CANCELLED">Cancelado</option>
           <option value="RENEWED">Renovado</option>
           <option value="PAUSED">Pausado</option>

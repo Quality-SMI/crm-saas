@@ -13,6 +13,12 @@ import { PositioningService } from './positioning.service';
 export class PositioningController {
   constructor(private readonly service: PositioningService) {}
 
+  @Get('config/status')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  async configStatus() {
+    return this.service.getConfigStatus();
+  }
+
   @Get('discovery/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER)
   async discoveryStatus() {

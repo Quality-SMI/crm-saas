@@ -16,7 +16,6 @@ import { Tooltip } from '@/components/ui/tooltip';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE',    label: 'Ativo',     active: 'bg-green-600 text-white',   idle: 'bg-green-50 text-green-700 hover:bg-green-100' },
-  { value: 'PAYING',   label: 'Pagando',   active: 'bg-blue-600 text-white',    idle: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
   { value: 'CANCELLED',label: 'Cancelado', active: 'bg-red-600 text-white',     idle: 'bg-red-50 text-red-700 hover:bg-red-100' },
   { value: 'RENEWED',  label: 'Renovado',  active: 'bg-purple-600 text-white',  idle: 'bg-purple-50 text-purple-700 hover:bg-purple-100' },
   { value: 'PAUSED',   label: 'Pausado',   active: 'bg-yellow-500 text-white',  idle: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' },

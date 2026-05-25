@@ -31,6 +31,10 @@ export const positioningApi = {
     return apiClient.post('/positioning/sync/all').then((r) => r.data);
   },
 
+  configStatus(): Promise<{ configured: boolean; hasClientId: boolean; hasSecret: boolean; hasRefreshToken: boolean }> {
+    return apiClient.get('/positioning/config/status').then((r) => r.data);
+  },
+
   discoveryStatus(): Promise<{ total: number; gscLinked: number; ga4Linked: number; unlinked: number }> {
     return apiClient.get('/positioning/discovery/status').then((r) => r.data);
   },

@@ -717,7 +717,6 @@ export function ClientForm({ defaultValues, onSubmit, isLoading, submitLabel }: 
           <Field label="Status" error={errors.status?.message}>
             <Select {...register('status')}>
               <option value="ACTIVE">Ativo</option>
-              <option value="PAYING">Pagando</option>
               <option value="CANCELLED">Cancelado</option>
               <option value="RENEWED">Renovado</option>
               <option value="PAUSED">Pausado</option>

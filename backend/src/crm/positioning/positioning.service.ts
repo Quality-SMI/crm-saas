@@ -327,6 +327,18 @@ export class PositioningService implements OnModuleInit {
     });
   }
 
+  getConfigStatus(): { configured: boolean; hasClientId: boolean; hasSecret: boolean; hasRefreshToken: boolean } {
+    const hasClientId = !!this.config.get('GOOGLE_CLIENT_ID');
+    const hasSecret = !!this.config.get('GOOGLE_CLIENT_SECRET');
+    const hasRefreshToken = !!this.config.get('GOOGLE_REFRESH_TOKEN');
+    return {
+      configured: hasClientId && hasSecret && hasRefreshToken,
+      hasClientId,
+      hasSecret,
+      hasRefreshToken,
+    };
+  }
+
   async getDiscoveryStatus(): Promise<{ total: number; gscLinked: number; ga4Linked: number; unlinked: number }> {
     const rows = await this.dataSource.query<any[]>(`
       SELECT
