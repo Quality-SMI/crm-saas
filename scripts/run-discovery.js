@@ -5,13 +5,13 @@
  * Uso: node run-discovery.js
  */
 
-const { google, Auth } = require('googleapis');
-const { Client } = require('pg');
+const { google, Auth } = require('./node_modules/googleapis');
+const { Client } = require('./node_modules/pg');
 
 const CLIENT_ID     = '1002549525653-t19ueoi36o1itbof0i0af6kijdam8oof.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
-const REFRESH_TOKEN = '1//0hxd3c3P42RCsCgYIARAAGBESNwF-L9Irr9ubew-8haa-3X_pD5sPLoO79dewt7jxHdm090aifymSOVbBp0kI_f3hkbzdc5C-bno';
-const DATABASE_URL  = 'postgresql://postgres:HJ2sYplU3G2FvPvVct7u2saWKNkEjb0yrGsLz9am5v6d1w062OmulMkOgqaAz0H8@145.79.7.208:5430/postgres';
+const CLIENT_SECRET = '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';
+const REFRESH_TOKEN = '1//0hR-BcYvZCW8FCgYIARAAGBESNwF-L9IrVvMe9BDT6BkSkldNh2MLBJV5tCvwKEi5NNtZ26SbtDqViL0ZvvPeDPSyfEjExWhCpXQ';
+const DATABASE_URL  = 'postgresql://crm:crm_dev_pass@localhost:5432/crm_db';
 
 function extractDomain(url) {
   return url

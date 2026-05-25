@@ -28,7 +28,8 @@ export class PositioningController {
   @Post('discovery/run')
   @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR)
   async runDiscovery() {
-    return this.service.discoverAndMatchProperties();
+    this.service.discoverAndMatchProperties().catch(() => {});
+    return { message: 'Discovery em andamento' };
   }
 
   @Post('sync/all')
