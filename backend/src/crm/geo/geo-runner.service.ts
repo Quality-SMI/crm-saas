@@ -223,7 +223,7 @@ export class GeoRunnerService {
   private async analyzeWithGeminiGrounding(prompt: string, client: Client): Promise<MentionAnalysis> {
     if (!this.gemini) throw new Error('GEMINI_API_KEY não configurado');
     const model = this.gemini.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       tools: [{ googleSearch: {} } as never],
     });
 

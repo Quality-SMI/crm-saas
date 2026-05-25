@@ -774,8 +774,10 @@ function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment
   const [queries, setQueries] = useState<AiQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [newPrompt, setNewPrompt] = useState('');
+  const [bulkInput, setBulkInput] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [selectedPlatformIds, setSelectedPlatformIds] = useState<string[]>(
     activePlatformId ? [activePlatformId] : [],
@@ -809,6 +811,31 @@ function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment
       });
       setShowForm(false);
       setNewPrompt('');
+      setNewCategory('');
+      setSelectedPlatformIds(activePlatformId ? [activePlatformId] : []);
+      load();
+    } catch { /* swallow */ } finally { setSubmitting(false); }
+  };
+
+  const handleCreateBulk = async () => {
+    const prompts = bulkInput
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    if (prompts.length === 0) return;
+    setSubmitting(true);
+    try {
+      await Promise.all(
+        prompts.map((p) =>
+          geoApi.createQuery(clientId, {
+            prompt: p,
+            category: newCategory || undefined,
+            platform_ids: selectedPlatformIds.length > 0 ? selectedPlatformIds : undefined,
+          }),
+        ),
+      );
+      setShowForm(false);
+      setBulkInput('');
       setNewCategory('');
       setSelectedPlatformIds(activePlatformId ? [activePlatformId] : []);
       load();
@@ -850,17 +877,54 @@ function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment
       {showForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-blue-800">Prompt personalizado</p>
+            <div className="flex items-center gap-1 bg-white border border-blue-200 rounded-lg p-0.5">
+              <button
+                type="button"
+                onClick={() => setBulkMode(false)}
+                className={`text-xs px-3 py-1 rounded-md font-medium transition-colors ${!bulkMode ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkMode(true)}
+                className={`text-xs px-3 py-1 rounded-md font-medium transition-colors ${bulkMode ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Em massa
+              </button>
+            </div>
             <Tooltip text="Fechar formulário">
-              <button onClick={() => setShowForm(false)}><X size={14} className="text-gray-400" /></button>
+              <button onClick={() => { setShowForm(false); setBulkMode(false); }}><X size={14} className="text-gray-400" /></button>
             </Tooltip>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Prompt / Query *</label>
-            <input value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)}
-              placeholder='ex: "melhores agências de SEO em São Paulo"'
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+
+          {!bulkMode ? (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Prompt / Query *</label>
+              <input value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)}
+                placeholder='ex: "melhores agências de SEO em São Paulo"'
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Prompts em massa — separados por vírgula *
+              </label>
+              <textarea
+                value={bulkInput}
+                onChange={(e) => setBulkInput(e.target.value)}
+                rows={4}
+                placeholder='ex: agencia de seo em sp, melhores agências de marketing, como contratar agência de seo'
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+              {bulkInput.trim() && (
+                <p className="text-xs text-blue-600 mt-1">
+                  {bulkInput.split(',').filter((p) => p.trim()).length} prompt{bulkInput.split(',').filter((p) => p.trim()).length !== 1 ? 's' : ''} detectado{bulkInput.split(',').filter((p) => p.trim()).length !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
             <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)}
@@ -892,11 +956,18 @@ function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment
             )}
           </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setShowForm(false)} className="text-sm text-gray-500 hover:text-gray-700 px-4 py-1.5 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} disabled={!newPrompt.trim() || submitting}
-              className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-4 py-1.5 rounded-lg transition-colors">
-              {submitting ? 'Salvando...' : 'Salvar prompt'}
-            </button>
+            <button onClick={() => { setShowForm(false); setBulkMode(false); }} className="text-sm text-gray-500 hover:text-gray-700 px-4 py-1.5 rounded-lg">Cancelar</button>
+            {!bulkMode ? (
+              <button onClick={handleCreate} disabled={!newPrompt.trim() || submitting}
+                className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-4 py-1.5 rounded-lg transition-colors">
+                {submitting ? 'Salvando...' : 'Salvar prompt'}
+              </button>
+            ) : (
+              <button onClick={handleCreateBulk} disabled={!bulkInput.trim() || submitting}
+                className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-4 py-1.5 rounded-lg transition-colors">
+                {submitting ? 'Salvando...' : `Salvar ${bulkInput.split(',').filter((p) => p.trim()).length || ''} prompt${bulkInput.split(',').filter((p) => p.trim()).length !== 1 ? 's' : ''}`}
+              </button>
+            )}
           </div>
         </div>
       )}
