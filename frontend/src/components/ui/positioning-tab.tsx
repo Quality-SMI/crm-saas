@@ -521,11 +521,18 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
                 </tr>
               </thead>
               <tbody>
-                {contractedKeywords.map((kw) => {
-                  const gscData = latest.keywords.find(
-                    (k) => k.query.toLowerCase() === kw.toLowerCase()
-                  );
-                  return (
+                {[...contractedKeywords]
+                  .map((kw) => ({
+                    kw,
+                    gscData: latest.keywords.find((k) => k.query.toLowerCase() === kw.toLowerCase()),
+                  }))
+                  .sort((a, b) => {
+                    if (a.gscData && !b.gscData) return -1;
+                    if (!a.gscData && b.gscData) return 1;
+                    if (a.gscData && b.gscData) return a.gscData.position - b.gscData.position;
+                    return 0;
+                  })
+                  .map(({ kw, gscData }) => (
                     <tr key={kw} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="px-4 py-1.5 text-gray-700">{kw}</td>
                       <td className={`px-4 py-1.5 text-right font-semibold ${gscData ? positionColor(gscData.position) : 'text-gray-300'}`}>
@@ -538,8 +545,7 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
                         {gscData ? fmtNum(gscData.impressions) : '—'}
                       </td>
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
             </table>
           </div>
