@@ -20,22 +20,30 @@ export class PositioningService implements OnModuleInit {
     private readonly config: ConfigService,
   ) {}
 
-  async onModuleInit() {
+  onModuleInit() {
     const hasCredentials = this.config.get('GOOGLE_CLIENT_ID') && this.config.get('GOOGLE_REFRESH_TOKEN');
     if (!hasCredentials) return;
 
-    // Roda discovery na inicialização se ainda não há clientes vinculados
-    const status = await this.getDiscoveryStatus();
-    if (status.gscLinked === 0) {
-      this.logger.log('Rodando discovery automático de propriedades Google...');
-      const result = await this.discoverAndMatchProperties().catch((e) => {
-        this.logger.warn('Discovery falhou: ' + e.message);
-        return null;
-      });
-      if (result) {
-        this.logger.log(`Discovery concluído: ${result.gscMatched} GSC, ${result.ga4Matched} GA4 vinculados`);
-        await this.syncAllClients();
+    // Roda discovery em background sem bloquear o startup do app
+    setTimeout(() => this.runDiscoveryIfNeeded(), 5000);
+  }
+
+  private async runDiscoveryIfNeeded() {
+    try {
+      const status = await this.getDiscoveryStatus();
+      if (status.gscLinked === 0) {
+        this.logger.log('Rodando discovery automático de propriedades Google...');
+        const result = await this.discoverAndMatchProperties().catch((e) => {
+          this.logger.warn('Discovery falhou: ' + e.message);
+          return null;
+        });
+        if (result) {
+          this.logger.log(`Discovery concluído: ${result.gscMatched} GSC, ${result.ga4Matched} GA4 vinculados`);
+          this.syncAllClients().catch(() => {});
+        }
       }
+    } catch (e) {
+      this.logger.warn('Discovery init error: ' + (e as Error).message);
     }
   }
 
