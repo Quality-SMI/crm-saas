@@ -20,8 +20,8 @@ export const positioningApi = {
   getSnapshots(clientId: string, days = 90): Promise<GscSnapshot[]> {
     return apiClient.get(`/positioning/${clientId}/snapshots`, { params: { days } }).then((r) => r.data);
   },
-  getLatest(clientId: string): Promise<GscSnapshot | null> {
-    return apiClient.get(`/positioning/${clientId}/latest`).then((r) => r.data);
+  getLatest(clientId: string, days = 90): Promise<GscSnapshot | null> {
+    return apiClient.get(`/positioning/${clientId}/latest`, { params: { days } }).then((r) => r.data);
   },
   sync(clientId: string): Promise<{ message: string }> {
     return apiClient.post(`/positioning/${clientId}/sync`).then((r) => r.data);

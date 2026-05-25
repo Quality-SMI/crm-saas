@@ -50,8 +50,11 @@ export class PositioningController {
 
   @Get(':clientId/latest')
   @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
-  async getLatest(@Param('clientId', ParseUUIDPipe) clientId: string) {
-    return this.service.getLatestSnapshot(clientId);
+  async getLatest(
+    @Param('clientId', ParseUUIDPipe) clientId: string,
+    @Query('days') days?: string,
+  ) {
+    return this.service.getLatestSnapshot(clientId, days ? Number(days) : 90);
   }
 
   @Post(':clientId/sync')

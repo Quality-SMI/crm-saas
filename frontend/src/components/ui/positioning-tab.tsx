@@ -131,7 +131,7 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
     try {
       const [snaps, lat, kws] = await Promise.allSettled([
         positioningApi.getSnapshots(clientId, days),
-        positioningApi.getLatest(clientId),
+        positioningApi.getLatest(clientId, days),
         keywordsApi.list(clientId),
       ]);
       if (snaps.status === 'fulfilled') setSnapshots(snaps.value);
@@ -407,7 +407,7 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
               </button>
             </Tooltip>
           ))}
-          <span className="text-xs text-gray-400">← afeta o gráfico histórico</span>
+          <span className="text-xs text-gray-400">período de análise</span>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {latest?.synced_at && (
@@ -571,7 +571,7 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-700">Top Keywords</h3>
-              <p className="text-xs text-gray-400 mt-0.5">90 dias · último sync · Search Console</p>
+              <p className="text-xs text-gray-400 mt-0.5">Últimos {days} dias · Search Console</p>
             </div>
             <div className="overflow-auto max-h-56">
               <table className="w-full text-xs">
@@ -603,7 +603,7 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-700">Páginas com mais cliques</h3>
-              <p className="text-xs text-gray-400 mt-0.5">90 dias · último sync · Search Console</p>
+              <p className="text-xs text-gray-400 mt-0.5">Últimos {days} dias · Search Console</p>
             </div>
             <div className="overflow-auto max-h-56">
               <table className="w-full text-xs">

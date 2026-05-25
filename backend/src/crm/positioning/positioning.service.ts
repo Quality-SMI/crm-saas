@@ -182,12 +182,17 @@ export class PositioningService implements OnModuleInit {
     const auth = this.getAuth();
     const today = new Date();
     const endDate = today.toISOString().split('T')[0];
-    const startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const gscData = await this.fetchSearchConsole(auth, client, startDate, endDate);
-    const gaData = await this.fetchAnalytics(auth, client, startDate, endDate);
-
-    await this.upsertSnapshot(clientId, endDate, gscData, gaData);
+    // Grava snapshots para 30, 60 e 90 dias para o filtro de período funcionar
+    for (const periodDays of [30, 60, 90]) {
+      const startDate = new Date(today.getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const gscData = await this.fetchSearchConsole(auth, client, startDate, endDate);
+      // GA4 só para 90 dias (evitar chamadas extras desnecessárias)
+      const gaData = periodDays === 90
+        ? await this.fetchAnalytics(auth, client, startDate, endDate)
+        : { sessions: 0, users: 0 };
+      await this.upsertSnapshot(clientId, endDate, periodDays, gscData, gaData);
+    }
   }
 
   async syncAllClients(): Promise<{ synced: number; failed: number }> {
@@ -297,18 +302,19 @@ export class PositioningService implements OnModuleInit {
   private async upsertSnapshot(
     clientId: string,
     date: string,
+    periodDays: number,
     gsc: Awaited<ReturnType<PositioningService['fetchSearchConsole']>>,
     ga: { sessions: number; users: number },
   ) {
     await this.dataSource.query(
       `INSERT INTO crm.gsc_snapshots
-        (client_id, date, total_clicks, total_impressions, avg_position, avg_ctr, keywords, pages, sessions, users, synced_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-       ON CONFLICT (client_id, date) DO UPDATE SET
-        total_clicks=$3, total_impressions=$4, avg_position=$5, avg_ctr=$6,
-        keywords=$7, pages=$8, sessions=$9, users=$10, synced_at=NOW()`,
+        (client_id, date, period_days, total_clicks, total_impressions, avg_position, avg_ctr, keywords, pages, sessions, users, synced_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+       ON CONFLICT (client_id, date, period_days) DO UPDATE SET
+        total_clicks=$4, total_impressions=$5, avg_position=$6, avg_ctr=$7,
+        keywords=$8, pages=$9, sessions=$10, users=$11, synced_at=NOW()`,
       [
-        clientId, date,
+        clientId, date, periodDays,
         gsc.total_clicks, gsc.total_impressions, gsc.avg_position, gsc.avg_ctr,
         JSON.stringify(gsc.keywords), JSON.stringify(gsc.pages),
         ga.sessions, ga.users,
@@ -317,20 +323,18 @@ export class PositioningService implements OnModuleInit {
   }
 
   async getSnapshots(clientId: string, days = 90): Promise<GscSnapshot[]> {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-    const sinceStr = since.toISOString().split('T')[0];
+    // Retorna histórico de snapshots do período selecionado ao longo do tempo
     return this.snapshotRepo
       .createQueryBuilder('s')
       .where('s.client_id = :clientId', { clientId })
-      .andWhere('s.date >= :since', { since: sinceStr })
+      .andWhere('s.period_days = :days', { days })
       .orderBy('s.date', 'ASC')
       .getMany();
   }
 
-  async getLatestSnapshot(clientId: string): Promise<GscSnapshot | null> {
+  async getLatestSnapshot(clientId: string, days = 90): Promise<GscSnapshot | null> {
     return this.snapshotRepo.findOne({
-      where: { client_id: clientId },
+      where: { client_id: clientId, period_days: days } as any,
       order: { date: 'DESC' },
     });
   }
