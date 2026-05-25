@@ -25,14 +25,20 @@ const STATUS_OPTIONS = [
 
 type ClientStatusValue = typeof STATUS_OPTIONS[number]['value'];
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  ACTIVE:    { label: 'Ativo',     color: 'bg-green-100 text-green-700' },
-  PAYING:    { label: 'Pagando',   color: 'bg-blue-100 text-blue-700' },
-  CANCELLED: { label: 'Cancelado', color: 'bg-red-100 text-red-700' },
-  RENEWED:   { label: 'Renovado',  color: 'bg-purple-100 text-purple-700' },
-  PAUSED:    { label: 'Pausado',   color: 'bg-yellow-100 text-yellow-700' },
-  FINISHED:  { label: 'Encerrado', color: 'bg-gray-100 text-gray-600' },
+const PLAN_IDS = {
+  SILVER:    'e9978d91-ec42-44e5-9afa-7a298d872c25',
+  GOLD:      '6f4144d8-55b4-486b-a7c9-c4c1a0974010',
+  DIAMOND:   'f3934adb-2208-46d9-803d-eff4dddad95b',
+  PARCEIROS: '39d3e744-88bb-4c99-8144-4b3c040c99ee',
+} as const;
+
+const PLAN_BADGE: Record<string, { label: string; cls: string }> = {
+  [PLAN_IDS.SILVER]:    { label: 'Silver',   cls: 'bg-gray-100 text-gray-600 border border-gray-200' },
+  [PLAN_IDS.GOLD]:      { label: 'Gold',     cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
+  [PLAN_IDS.DIAMOND]:   { label: 'Diamond',  cls: 'bg-sky-50 text-sky-700 border border-sky-200' },
+  [PLAN_IDS.PARCEIROS]: { label: 'Parceiro', cls: 'bg-purple-50 text-purple-700 border border-purple-200' },
 };
+
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -105,8 +111,7 @@ export default function ClientDetailPage() {
   if (loading) return <div className="text-sm text-gray-400 py-16 text-center">Carregando...</div>;
   if (!client) return <div className="text-sm text-gray-500 py-16 text-center">Cliente não encontrado.</div>;
 
-  const st = STATUS_LABEL[client.status];
-
+  const planBadge = client.company_size_id ? (PLAN_BADGE[client.company_size_id] ?? null) : null;
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
@@ -118,6 +123,11 @@ export default function ClientDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-gray-900">{client.company_name}</h1>
+            {planBadge && (
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${planBadge.cls}`}>
+                {planBadge.label}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 mt-0.5">
             <a

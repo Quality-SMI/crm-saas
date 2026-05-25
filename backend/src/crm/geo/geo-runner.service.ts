@@ -46,8 +46,8 @@ type PlatformSlug = string;
 @Injectable()
 export class GeoRunnerService {
   private readonly logger = new Logger(GeoRunnerService.name);
-  private readonly openai: OpenAI;
-  private readonly gemini: GoogleGenerativeAI;
+  private readonly openai: OpenAI | null;
+  private readonly gemini: GoogleGenerativeAI | null;
 
   constructor(
     @InjectRepository(AiQuery) private readonly queryRepo: Repository<AiQuery>,
@@ -57,8 +57,15 @@ export class GeoRunnerService {
     private readonly dataSource: DataSource,
     private readonly notificationsService: NotificationsService,
   ) {
-    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? '');
+    this.openai = process.env.OPENAI_API_KEY
+      ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+      : null;
+    this.gemini = process.env.GEMINI_API_KEY
+      ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+      : null;
+    if (!this.openai && !this.gemini) {
+      this.logger.warn('GeoRunnerService: OPENAI_API_KEY e GEMINI_API_KEY não configurados — runner de GEO desativado.');
+    }
   }
 
   // ─── Cron diário — todo dia às 4h ─────────────────────────────────────────
@@ -214,6 +221,7 @@ export class GeoRunnerService {
   // ─── Gemini com Google Search Grounding (AI Overview) ─────────────────────
 
   private async analyzeWithGeminiGrounding(prompt: string, client: Client): Promise<MentionAnalysis> {
+    if (!this.gemini) throw new Error('GEMINI_API_KEY não configurado');
     const model = this.gemini.getGenerativeModel({
       model: 'gemini-1.5-flash',
       tools: [{ googleSearch: {} } as never],
@@ -307,6 +315,7 @@ Retorne APENAS JSON válido com este formato exato:
   // ─── ChatGPT ───────────────────────────────────────────────────────────────
 
   private async callChatGpt(prompt: string): Promise<string> {
+    if (!this.openai) throw new Error('OPENAI_API_KEY não configurado');
     const resp = await this.openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
@@ -317,6 +326,7 @@ Retorne APENAS JSON válido com este formato exato:
   }
 
   private async analyzeResponseWithOpenAI(response: string, client: Client): Promise<MentionAnalysis> {
+    if (!this.openai) throw new Error('OPENAI_API_KEY não configurado');
     const resp = await this.openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [

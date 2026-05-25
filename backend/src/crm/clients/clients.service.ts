@@ -37,8 +37,8 @@ function resolvePlan(
   if (effectivePlan === PLAN_IDS.PARCEIROS) return undefined;
   if (monthly_value == null) return undefined;
   const v = Number(monthly_value);
-  if (v <= 2000) return PLAN_IDS.SILVER;
-  if (v <= 3000) return PLAN_IDS.GOLD;
+  if (v < 2000) return PLAN_IDS.SILVER;
+  if (v < 3000) return PLAN_IDS.GOLD;
   return PLAN_IDS.DIAMOND;
 }
 
@@ -213,8 +213,9 @@ export class ClientsService {
 
     return this.dataSource.transaction(async (manager) => {
       const { emails, phones, monthly_value, tag_ids, services, ...rest } = dto;
-      const autoPlan = monthly_value !== undefined
-        ? resolvePlan(monthly_value, rest.company_size_id, client.company_size_id)
+      // Auto-compute plan only when monthly_value is changing and no plan is explicitly sent
+      const autoPlan = monthly_value !== undefined && rest.company_size_id === undefined
+        ? resolvePlan(monthly_value, undefined, client.company_size_id)
         : undefined;
       const fields = {
         ...rest,

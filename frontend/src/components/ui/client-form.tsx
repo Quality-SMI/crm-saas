@@ -230,11 +230,24 @@ const SERVICE_ICONS: Record<string, string> = {
   SEO: '🔍',
   BLOG: '📝',
   GOOGLE_ADS: '📢',
+  GADS: '📢',
   META_ADS: '📱',
+  MADS: '📱',
   WEBSITE: '🌐',
+  WEB: '🌐',
   PR: '📰',
   SOCIAL_MEDIA: '📸',
+  CONTENT: '📝',
+  CONSULT: '💼',
 };
+
+const PLAN_IDS = {
+  SILVER:    'e9978d91-ec42-44e5-9afa-7a298d872c25',
+  GOLD:      '6f4144d8-55b4-486b-a7c9-c4c1a0974010',
+  DIAMOND:   'f3934adb-2208-46d9-803d-eff4dddad95b',
+  PARCEIROS: '39d3e744-88bb-4c99-8144-4b3c040c99ee',
+} as const;
+
 
 const SEO_MONTHS = [12, 24, 36, 50, 100];
 const ADS_MONTHS = [6, 12, 24];
@@ -425,13 +438,31 @@ function ServiceFields({
     );
   }
 
-  if (code === 'BLOG') return (
+  if (code === 'BLOG' || code === 'CONTENT') return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+      {dateInput('Data de início')}
+      {monthsSelect(ADS_MONTHS)}
+      {brlInput('monthly_value', 'Valor mensal')}
       {numInput('monthly_articles', 'Artigos/mês')}
+      {numInput('contracted_content', 'Conteúdos contratados')}
     </div>
   );
 
-  if (code === 'GOOGLE_ADS' || code === 'META_ADS') {
+  if (code === 'CONSULT') {
+    const monthly = typeof values.monthly_value === 'number' ? values.monthly_value : 0;
+    const months = typeof values.contract_months === 'number' ? values.contract_months : 0;
+    const total = monthly > 0 && months > 0 ? monthly * months : null;
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+        {dateInput('Data de início')}
+        {monthsSelect(ADS_MONTHS)}
+        {brlInput('monthly_value', 'Valor mensal')}
+        {total != null && <ServiceTotal label="Valor total do contrato:" value={total} />}
+      </div>
+    );
+  }
+
+  if (code === 'GOOGLE_ADS' || code === 'GADS' || code === 'META_ADS' || code === 'MADS') {
     const fee = typeof values.management_fee === 'number' ? values.management_fee : 0;
     const budget = typeof values.media_budget === 'number' ? values.media_budget : 0;
     const months = typeof values.contract_months === 'number' ? values.contract_months : 0;
@@ -447,7 +478,7 @@ function ServiceFields({
     );
   }
 
-  if (code === 'WEBSITE') {
+  if (code === 'WEBSITE' || code === 'WEB') {
     const oneTime = typeof values.one_time_value === 'number' ? values.one_time_value : 0;
     const installments = typeof values.installments === 'number' ? values.installments : 0;
     const total = oneTime > 0 && installments > 0 ? oneTime * installments : null;
@@ -510,7 +541,6 @@ function ServiceFields({
 export function ClientForm({ defaultValues, onSubmit, isLoading, submitLabel }: Props) {
   const [marketSegments, setMarketSegments] = useState<LookupItem[]>([]);
   const [businessModels, setBusinessModels] = useState<LookupItem[]>([]);
-  const [companySizes, setCompanySizes] = useState<LookupItem[]>([]);
   const [serviceTypes, setServiceTypes] = useState<LookupItem[]>([]);
   const [tagResults, setTagResults] = useState<LookupItem[]>([]);
   const [tagSearch, setTagSearch] = useState('');
@@ -594,10 +624,7 @@ export function ClientForm({ defaultValues, onSubmit, isLoading, submitLabel }: 
       setBusinessModels(data);
       if (defaultValues?.business_model_id) setValue('business_model_id', defaultValues.business_model_id);
     }).catch(() => {});
-    lookupApi.companySizes().then((data) => {
-      setCompanySizes(data);
-      if (defaultValues?.company_size_id) setValue('company_size_id', defaultValues.company_size_id);
-    }).catch(() => {});
+    // company_size_id is set from defaultValues directly — no async lookup needed
     lookupApi.serviceTypes().then(setServiceTypes).catch(() => {});
     lookupApi.tags().then(setTagResults).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -775,14 +802,31 @@ export function ClientForm({ defaultValues, onSubmit, isLoading, submitLabel }: 
               {businessModels.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </Select>
           </Field>
-          <Field label="Plano" error={errors.company_size_id?.message}>
-            <Select
-              value={watch('company_size_id') ?? ''}
-              onChange={(e) => setValue('company_size_id', e.target.value || undefined)}
-            >
-              <option value="">Selecione...</option>
-              {companySizes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
+          <Field label="Plano">
+            {(() => {
+              const currentId = watch('company_size_id');
+              const plans = [
+                { id: PLAN_IDS.SILVER,    label: 'Silver',    range: 'até R$1.999',       active: 'bg-gray-200 text-gray-800 border-gray-400',      idle: 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100' },
+                { id: PLAN_IDS.GOLD,      label: 'Gold',      range: 'R$2.000 – R$2.999', active: 'bg-yellow-100 text-yellow-800 border-yellow-400', idle: 'bg-yellow-50 text-yellow-600 border-yellow-100 hover:bg-yellow-100' },
+                { id: PLAN_IDS.DIAMOND,   label: 'Diamond',   range: 'R$3.000+',           active: 'bg-sky-100 text-sky-800 border-sky-400',         idle: 'bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-100' },
+                { id: PLAN_IDS.PARCEIROS, label: 'Parceiros', range: 'Manual',             active: 'bg-purple-100 text-purple-800 border-purple-400', idle: 'bg-purple-50 text-purple-500 border-purple-100 hover:bg-purple-100' },
+              ];
+              return (
+                <div className="flex gap-2 flex-wrap">
+                  {plans.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setValue('company_size_id', currentId === p.id ? undefined : p.id)}
+                      className={`flex flex-col items-center px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${currentId === p.id ? p.active : p.idle}`}
+                    >
+                      <span>{p.label}</span>
+                      <span className="text-[10px] font-normal opacity-70 mt-0.5">{p.range}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </Field>
           <Field label="Tags">
             <TagSelector

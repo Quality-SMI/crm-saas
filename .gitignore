@@ -38,3 +38,8 @@ build/
 # Temp
 tmp/
 temp/
+
+# Backups de banco (arquivos grandes, nunca commitar)
+backups/
+*.sql.gz
+*.sql
