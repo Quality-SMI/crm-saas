@@ -394,9 +394,9 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {[30, 60, 90].map((d) => (
-            <Tooltip key={d} text={`Ver dados dos últimos ${d} dias`}>
+            <Tooltip key={d} text={`Ver gráfico histórico dos últimos ${d} dias`}>
               <button
                 onClick={() => setDays(d)}
                 className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
@@ -407,6 +407,7 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
               </button>
             </Tooltip>
           ))}
+          <span className="text-xs text-gray-400">← afeta o gráfico histórico</span>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {latest?.synced_at && (
@@ -509,37 +510,39 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
               <p className="text-xs text-gray-400 mt-0.5">{contractedKeywords.length} palavra{contractedKeywords.length !== 1 ? 's' : ''} do contrato</p>
             </div>
           </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-gray-50 text-left">
-                <th className="px-4 py-2 text-gray-400 font-medium">Palavra-chave</th>
-                <th className="px-4 py-2 text-gray-400 font-medium text-right">Posição</th>
-                <th className="px-4 py-2 text-gray-400 font-medium text-right">Cliques</th>
-                <th className="px-4 py-2 text-gray-400 font-medium text-right">Impressões</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contractedKeywords.map((kw) => {
-                const gscData = latest.keywords.find(
-                  (k) => k.query.toLowerCase() === kw.toLowerCase()
-                );
-                return (
-                  <tr key={kw} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="px-4 py-2 text-gray-700">{kw}</td>
-                    <td className={`px-4 py-2 text-right font-semibold ${gscData ? positionColor(gscData.position) : 'text-gray-300'}`}>
-                      {gscData ? fmtPos(gscData.position) : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-right text-gray-600">
-                      {gscData ? fmtNum(gscData.clicks) : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-right text-gray-400">
-                      {gscData ? fmtNum(gscData.impressions) : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-auto max-h-56">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-100 text-left bg-white sticky top-0 z-10">
+                  <th className="px-4 py-1.5 text-gray-400 font-medium">Palavra-chave</th>
+                  <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Posição</th>
+                  <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Cliques</th>
+                  <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Impressões</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contractedKeywords.map((kw) => {
+                  const gscData = latest.keywords.find(
+                    (k) => k.query.toLowerCase() === kw.toLowerCase()
+                  );
+                  return (
+                    <tr key={kw} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-4 py-1.5 text-gray-700">{kw}</td>
+                      <td className={`px-4 py-1.5 text-right font-semibold ${gscData ? positionColor(gscData.position) : 'text-gray-300'}`}>
+                        {gscData ? fmtPos(gscData.position) : '—'}
+                      </td>
+                      <td className="px-4 py-1.5 text-right text-gray-600">
+                        {gscData ? fmtNum(gscData.clicks) : '—'}
+                      </td>
+                      <td className="px-4 py-1.5 text-right text-gray-400">
+                        {gscData ? fmtNum(gscData.impressions) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {contractedKeywords.some((kw) => !latest.keywords.find((k) => k.query.toLowerCase() === kw.toLowerCase())) && (
             <p className="px-4 py-2 text-xs text-gray-400 border-t border-gray-50">
               Palavras com "—" não aparecem no top 25 do Search Console no período selecionado.
@@ -562,28 +565,30 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-700">Top Keywords</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Últimos {days} dias · Search Console</p>
+              <p className="text-xs text-gray-400 mt-0.5">90 dias · último sync · Search Console</p>
             </div>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-gray-50 text-left">
-                  <th className="px-4 py-2 text-gray-400 font-medium">Keyword</th>
-                  <th className="px-4 py-2 text-gray-400 font-medium text-right">Pos.</th>
-                  <th className="px-4 py-2 text-gray-400 font-medium text-right">Cliques</th>
-                  <th className="px-4 py-2 text-gray-400 font-medium text-right">Imp.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latest.keywords.slice(0, 15).map((kw, i) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="px-4 py-2 text-gray-700 max-w-[180px] truncate">{kw.query}</td>
-                    <td className={`px-4 py-2 text-right ${positionColor(kw.position)}`}>{fmtPos(kw.position)}</td>
-                    <td className="px-4 py-2 text-right text-gray-600">{fmtNum(kw.clicks)}</td>
-                    <td className="px-4 py-2 text-right text-gray-400">{fmtNum(kw.impressions)}</td>
+            <div className="overflow-auto max-h-56">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left bg-white sticky top-0 z-10">
+                    <th className="px-4 py-1.5 text-gray-400 font-medium">Keyword</th>
+                    <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Pos.</th>
+                    <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Cliques</th>
+                    <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Imp.</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {latest.keywords.map((kw, i) => (
+                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-4 py-1.5 text-gray-700 max-w-[180px] truncate">{kw.query}</td>
+                      <td className={`px-4 py-1.5 text-right ${positionColor(kw.position)}`}>{fmtPos(kw.position)}</td>
+                      <td className="px-4 py-1.5 text-right text-gray-600">{fmtNum(kw.clicks)}</td>
+                      <td className="px-4 py-1.5 text-right text-gray-400">{fmtNum(kw.impressions)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -592,29 +597,31 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-700">Páginas com mais cliques</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Últimos {days} dias · Search Console</p>
+              <p className="text-xs text-gray-400 mt-0.5">90 dias · último sync · Search Console</p>
             </div>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-gray-50 text-left">
-                  <th className="px-4 py-2 text-gray-400 font-medium">Página</th>
-                  <th className="px-4 py-2 text-gray-400 font-medium text-right">Pos.</th>
-                  <th className="px-4 py-2 text-gray-400 font-medium text-right">Cliques</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latest.pages.map((p, i) => {
-                  const path = p.page.replace(/^https?:\/\/[^/]+/, '') || '/';
-                  return (
-                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="px-4 py-2 text-gray-700 max-w-[220px] truncate" title={p.page}>{path}</td>
-                      <td className={`px-4 py-2 text-right ${positionColor(p.position)}`}>{fmtPos(p.position)}</td>
-                      <td className="px-4 py-2 text-right text-gray-600">{fmtNum(p.clicks)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-auto max-h-56">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left bg-white sticky top-0 z-10">
+                    <th className="px-4 py-1.5 text-gray-400 font-medium">Página</th>
+                    <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Pos.</th>
+                    <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Cliques</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {latest.pages.map((p, i) => {
+                    const path = p.page.replace(/^https?:\/\/[^/]+/, '') || '/';
+                    return (
+                      <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="px-4 py-1.5 text-gray-700 max-w-[220px] truncate" title={p.page}>{path}</td>
+                        <td className={`px-4 py-1.5 text-right ${positionColor(p.position)}`}>{fmtPos(p.position)}</td>
+                        <td className="px-4 py-1.5 text-right text-gray-600">{fmtNum(p.clicks)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
