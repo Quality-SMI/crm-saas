@@ -2,14 +2,18 @@ import * as crypto from 'crypto';
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
   Logger,
+  Param,
   Post,
   Req,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import { EmailSendingService } from './email-sending.service';
@@ -63,6 +67,29 @@ export class EmailMarketingWebhookController {
     private readonly emailMarketingService: EmailMarketingService,
     private readonly config: ConfigService,
   ) {}
+
+  // 1x1 transparent GIF
+  private static readonly TRACKING_PIXEL = Buffer.from(
+    'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    'base64',
+  );
+
+  @Get('track/:recipientId')
+  async trackOpen(
+    @Param('recipientId') recipientId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    this.emailSendingService.trackOpen(recipientId).catch(() => {});
+    res.set({
+      'Content-Type': 'image/gif',
+      'Content-Length': String(
+        EmailMarketingWebhookController.TRACKING_PIXEL.length,
+      ),
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+    });
+    res.end(EmailMarketingWebhookController.TRACKING_PIXEL);
+  }
 
   @Post('resend')
   @HttpCode(HttpStatus.OK)

@@ -15,6 +15,7 @@ export class EmailSendingService {
   private readonly logger = new Logger(EmailSendingService.name);
   private readonly resend: Resend | null;
   private readonly appUrl: string;
+  private readonly backendUrl: string;
 
   constructor(
     private readonly dataSource: DataSource,
@@ -23,6 +24,8 @@ export class EmailSendingService {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.appUrl =
       this.configService.get<string>('APP_URL') ?? 'http://localhost:3001';
+    this.backendUrl =
+      this.configService.get<string>('BACKEND_URL') ?? 'http://localhost:3000';
 
     if (!apiKey) {
       this.logger.warn(
@@ -119,6 +122,16 @@ export class EmailSendingService {
       [filtered.length, campaignId],
     );
 
+    // Build email → recipientId map for tracking pixels
+    const recipientRows: { id: string; email: string }[] =
+      await this.dataSource.query(
+        `SELECT id, email FROM crm.email_campaign_recipients WHERE campaign_id = $1`,
+        [campaignId],
+      );
+    const recipientIdMap = new Map<string, string>(
+      recipientRows.map((r) => [r.email.toLowerCase(), r.id]),
+    );
+
     const BATCH_SIZE = 50;
     let sentCount = 0;
 
@@ -128,10 +141,14 @@ export class EmailSendingService {
       await Promise.all(
         batch.map(async (recipient) => {
           try {
+            const recipientId = recipientIdMap.get(
+              recipient.email.toLowerCase(),
+            );
             const htmlWithUnsubscribe = this.injectUnsubscribeFooter(
               campaign.html_body,
               recipient.email,
               campaignId,
+              recipientId,
             );
 
             if (!this.resend) {
@@ -208,6 +225,27 @@ export class EmailSendingService {
        WHERE id = $2`,
       [sentCount, campaignId, finalStatus],
     );
+  }
+
+  async trackOpen(recipientId: string): Promise<void> {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(recipientId)) return;
+
+    const updated: { campaign_id: string }[] = await this.dataSource.query(
+      `UPDATE crm.email_campaign_recipients
+       SET status = 'OPENED', opened_at = NOW()
+       WHERE id = $1 AND status = 'SENT'
+       RETURNING campaign_id`,
+      [recipientId],
+    );
+
+    if (updated.length > 0) {
+      await this.dataSource.query(
+        `UPDATE crm.email_campaigns SET open_count = open_count + 1, updated_at = NOW() WHERE id = $1`,
+        [updated[0].campaign_id],
+      );
+    }
   }
 
   async processWebhook(payload: any): Promise<void> {
@@ -400,9 +438,13 @@ export class EmailSendingService {
     html: string,
     email: string,
     campaignId: string,
+    recipientId?: string,
   ): string {
     const encodedEmail = encodeURIComponent(email);
     const unsubscribeUrl = `${this.appUrl}/unsubscribe?email=${encodedEmail}&campaign=${campaignId}`;
+    const pixelTag = recipientId
+      ? `<img src="${this.backendUrl}/api/email-marketing/webhooks/track/${recipientId}" width="1" height="1" style="display:none;width:1px;height:1px;" alt="" />`
+      : '';
 
     // If already a full HTML document, just inject footer before </body>
     if (html.includes('</body>') || html.includes('<html')) {
@@ -410,7 +452,7 @@ export class EmailSendingService {
 <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-family:sans-serif;font-size:12px;color:#9ca3af;">
   <p style="margin:4px 0;">Você está recebendo este e-mail porque está cadastrado em nossa lista.</p>
   <p style="margin:4px 0;"><a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Cancelar inscrição</a></p>
-</div>`;
+</div>${pixelTag}`;
       return html.includes('</body>')
         ? html.replace('</body>', `${footer}</body>`)
         : html + footer;
@@ -478,6 +520,7 @@ export class EmailSendingService {
       </td>
     </tr>
   </table>
+  ${pixelTag}
 </body>
 </html>`;
   }
