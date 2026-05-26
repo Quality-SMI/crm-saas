@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsObject, IsInt, Min } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsArray, IsInt, Min } from 'class-validator';
 
 export class CreateCampaignBodyDto {
   @IsString()
@@ -40,6 +40,10 @@ export class CreateCampaignBodyDto {
   @IsOptional()
   @IsString()
   scheduled_at?: string;
+
+  @IsOptional()
+  @IsArray()
+  attachments?: { name: string; content: string; type: string }[];
 }
 
 export class UpdateCampaignBodyDto {
@@ -90,6 +94,10 @@ export class UpdateCampaignBodyDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @IsArray()
+  attachments?: { name: string; content: string; type: string }[];
 }
 
 export class CreateTemplateBodyDto {

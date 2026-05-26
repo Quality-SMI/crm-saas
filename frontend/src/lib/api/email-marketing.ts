@@ -13,6 +13,12 @@ export type AudienceType =
   | 'lost_leads'
   | 'manual';
 
+export interface EmailAttachment {
+  name: string;
+  content: string;
+  type: string;
+}
+
 export interface EmailCampaign {
   id: string;
   name: string;
@@ -37,6 +43,7 @@ export interface EmailCampaign {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  attachments: EmailAttachment[];
 }
 
 export interface EmailTemplate {

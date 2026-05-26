@@ -11,6 +11,7 @@ import {
   ArrowLeft, Send, Save, Clock, Users,
   Bold, Italic, List, ListOrdered, Link as LinkIcon,
   Minus, FlaskConical, PenLine, Sparkles, ImageIcon, X,
+  Paperclip, FileText, Trash2,
 } from 'lucide-react';
 import {
   emailMarketingApi,
@@ -18,6 +19,7 @@ import {
   EmailTemplate,
   AudiencePreview,
   EmailCampaign,
+  EmailAttachment,
 } from '@/lib/api/email-marketing';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -181,6 +183,8 @@ function CampaignEditor({
   const [imgAlt, setImgAlt] = useState('');
   const [imgLink, setImgLink] = useState('');
   const imgFileRef = useRef<HTMLInputElement>(null);
+  const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+  const attachFileRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -221,6 +225,7 @@ function CampaignEditor({
         setAudienceType(c.audience_type as AudienceType);
         if (c.scheduled_at) { setScheduleEnabled(true); setScheduledAt(c.scheduled_at.slice(0, 16)); }
         if (c.html_body) editor.commands.setContent(c.html_body);
+        if (c.attachments?.length) setAttachments(c.attachments);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -278,6 +283,20 @@ function CampaignEditor({
     e.target.value = '';
   };
 
+  const handleAttachFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    files.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) { alert(`${file.name} excede 5 MB.`); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        setAttachments((prev) => [...prev, { name: file.name, content: base64, type: file.type }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
   const getHtml = () => editor?.getHTML() ?? '';
 
   const validate = () => {
@@ -306,6 +325,7 @@ function CampaignEditor({
           from_name: fromName, from_email: fromEmail, reply_to: replyTo || null,
           audience_type: audienceType, audience_filters: manualFilters(),
           scheduled_at: scheduleEnabled && scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          attachments,
         });
       } else {
         await emailMarketingApi.createCampaign({
@@ -313,6 +333,7 @@ function CampaignEditor({
           from_name: fromName, from_email: fromEmail, reply_to: replyTo || null,
           audience_type: audienceType, audience_filters: manualFilters(),
           scheduled_at: scheduleEnabled && scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          attachments,
         });
       }
       router.push('/email-marketing');
@@ -336,6 +357,7 @@ function CampaignEditor({
           name, subject, preview_text: previewText || null, html_body: getHtml(),
           from_name: fromName, from_email: fromEmail, reply_to: replyTo || null,
           audience_type: audienceType, audience_filters: filters,
+          attachments,
         });
         id = c.id;
       } else {
@@ -343,6 +365,7 @@ function CampaignEditor({
           name, subject, preview_text: previewText || null, html_body: getHtml(),
           from_name: fromName, from_email: fromEmail, reply_to: replyTo || null,
           audience_type: audienceType, audience_filters: filters,
+          attachments,
         });
       }
       const sendOpts = limitEnabled ? { limit: sendLimit, offset: sendOffset || undefined } : undefined;
@@ -638,6 +661,41 @@ function CampaignEditor({
                 <p className="text-xs font-medium text-gray-700 truncate">{subject}</p>
                 {previewText && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{previewText}</p>}
               </div>
+            </div>
+          )}
+
+          {/* Attachments */}
+          {!isTemplateMode && (
+            <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                <Paperclip size={13} /> Anexos
+              </p>
+              {attachments.length > 0 && (
+                <div className="space-y-1">
+                  {attachments.map((a, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-2 py-1.5">
+                      <FileText size={12} className="text-gray-400 shrink-0" />
+                      <span className="flex-1 truncate text-gray-700">{a.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                        className="text-gray-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => attachFileRef.current?.click()}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-gray-200 rounded-lg text-xs text-gray-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+              >
+                <Paperclip size={12} /> Adicionar arquivo
+              </button>
+              <input ref={attachFileRef} type="file" multiple hidden onChange={handleAttachFile} />
+              <p className="text-[10px] text-gray-400">Máx. 5 MB por arquivo. PDF, Word, imagens, etc.</p>
             </div>
           )}
 

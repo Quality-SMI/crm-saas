@@ -181,12 +181,23 @@ export class EmailSendingService {
               return;
             }
 
+            const campaignAttachments: { name: string; content: string; type: string }[] =
+              Array.isArray(campaign.attachments) ? campaign.attachments : [];
+
             const result = await this.resend.emails.send({
               from: `${campaign.from_name} <${campaign.from_email}>`,
               to: recipient.email,
               subject: campaign.subject,
               html: htmlWithUnsubscribe,
               ...(campaign.reply_to ? { replyTo: campaign.reply_to } : {}),
+              ...(campaignAttachments.length > 0
+                ? {
+                    attachments: campaignAttachments.map((a) => ({
+                      filename: a.name,
+                      content: Buffer.from(a.content, 'base64'),
+                    })),
+                  }
+                : {}),
             });
 
             if ((result as any)?.error) {

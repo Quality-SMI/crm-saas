@@ -8,6 +8,12 @@ export interface AudienceMember {
   id: string;
 }
 
+export interface EmailAttachment {
+  name: string;
+  content: string;
+  type: string;
+}
+
 export interface CreateCampaignDto {
   name: string;
   subject: string;
@@ -20,6 +26,7 @@ export interface CreateCampaignDto {
   audience_filters?: Record<string, unknown>;
   template_id?: string;
   scheduled_at?: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface UpdateCampaignDto {
@@ -35,6 +42,7 @@ export interface UpdateCampaignDto {
   template_id?: string;
   scheduled_at?: string;
   status?: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface CreateTemplateDto {
@@ -83,8 +91,8 @@ export class EmailMarketingService {
     const rows = await this.dataSource.query(
       `INSERT INTO crm.email_campaigns
          (name, subject, preview_text, html_body, from_name, from_email, reply_to,
-          audience_type, audience_filters, template_id, scheduled_at, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+          audience_type, audience_filters, template_id, scheduled_at, created_by, attachments)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING *`,
       [
         dto.name,
@@ -99,6 +107,7 @@ export class EmailMarketingService {
         dto.template_id ?? null,
         dto.scheduled_at ?? null,
         userId,
+        JSON.stringify(dto.attachments ?? []),
       ],
     );
     return rows[0];
@@ -132,6 +141,8 @@ export class EmailMarketingService {
     if (dto.scheduled_at !== undefined)
       addField('scheduled_at', dto.scheduled_at);
     if (dto.status !== undefined) addField('status', dto.status);
+    if (dto.attachments !== undefined)
+      addField('attachments', JSON.stringify(dto.attachments));
 
     if (!fields.length) {
       return this.getCampaign(id);
