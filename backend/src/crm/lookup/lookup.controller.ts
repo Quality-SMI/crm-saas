@@ -1,11 +1,22 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../iam/auth/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { LookupService } from './lookup.service';
+
+// Dados de referência (segmentos, tipos de serviço etc.) — disponíveis para todos os
+// usuários internos autenticados; CLIENT_PORTAL não tem acesso ao backoffice.
+const ALL_INTERNAL = [
+  UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER,
+  UserRole.FINANCIAL, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES,
+];
 
 @ApiTags('lookup')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(...ALL_INTERNAL)
 @Controller('lookup')
 export class LookupController {
   constructor(private readonly lookupService: LookupService) {}

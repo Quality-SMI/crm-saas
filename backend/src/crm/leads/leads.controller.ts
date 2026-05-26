@@ -16,6 +16,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../iam/auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequirePermission } from '../../common/decorators/permission.decorator';
+import { Permission } from '../../iam/permissions/enums/permission.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { LeadsService } from './leads.service';
@@ -36,6 +38,7 @@ const ALL_INTERNAL = [
 ];
 
 @ApiTags('leads')
+@RequirePermission(Permission.LEADS_ACCESS)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('leads')

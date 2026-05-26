@@ -3,11 +3,14 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../iam/auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequirePermission } from '../../common/decorators/permission.decorator';
+import { Permission } from '../../iam/permissions/enums/permission.enum';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { PositioningService } from './positioning.service';
 import { PositioningReportService } from './positioning-report.service';
 
 @ApiTags('positioning')
+@RequirePermission(Permission.POSITIONING_ACCESS)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('positioning')

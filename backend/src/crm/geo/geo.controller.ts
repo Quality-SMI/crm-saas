@@ -6,6 +6,8 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../iam/auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequirePermission } from '../../common/decorators/permission.decorator';
+import { Permission } from '../../iam/permissions/enums/permission.enum';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { GeoService } from './geo.service';
@@ -25,6 +27,7 @@ const GEO_ROLES = [
 ];
 
 @ApiTags('geo')
+@RequirePermission(Permission.GEO_ACCESS)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('geo')
