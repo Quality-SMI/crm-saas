@@ -32,9 +32,18 @@ function LoginInner() {
       await login(data.email, data.password);
       router.replace(next.startsWith('/') ? next : '/dashboard');
     } catch (err: unknown) {
-      const raw = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      console.error('[login error]', err);
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string | string[] } }; message?: string };
+      const status = axiosErr?.response?.status;
+      const raw = axiosErr?.response?.data?.message;
       const msg = Array.isArray(raw) ? raw.join(' ') : raw;
-      setError(msg ?? 'Credenciais inválidas. Verifique seu email e senha.');
+      if (status === 429) {
+        setError('Muitas tentativas. Aguarde 60 segundos e tente novamente.');
+      } else if (msg) {
+        setError(msg);
+      } else {
+        setError(`Erro ao conectar (${axiosErr?.message ?? 'desconhecido'}). Verifique se o sistema está rodando.`);
+      }
     }
   };
 

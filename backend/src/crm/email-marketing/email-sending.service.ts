@@ -431,16 +431,15 @@ export class EmailSendingService {
         <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#1a2332 60%,#e36420 100%);padding:24px 32px;">
+            <td style="background:#ffffff;padding:20px 32px;border-bottom:3px solid #e36420;">
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td>
-                    <span style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;display:block;">Quality SMI</span>
-                    <span style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;">Sistema de Marketing para Internet</span>
+                  <td style="vertical-align:middle;">
+                    <img src="${this.appUrl}/logo.png" alt="Quality SMI" height="44" style="display:block;height:44px;width:auto;max-width:180px;" />
                   </td>
                   <td align="right" style="vertical-align:middle;">
-                    <span style="display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:3px 8px;font-size:10px;color:#ffffff;font-weight:600;margin-left:4px;">Google Partner</span>
-                    <span style="display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:3px 8px;font-size:10px;color:#ffffff;font-weight:600;margin-left:4px;">Meta Partner</span>
+                    <span style="display:inline-block;background:#4285F4;border-radius:4px;padding:3px 9px;font-size:10px;color:#ffffff;font-weight:700;margin-left:4px;letter-spacing:0.2px;">Google Partner</span>
+                    <span style="display:inline-block;background:#0866FF;border-radius:4px;padding:3px 9px;font-size:10px;color:#ffffff;font-weight:700;margin-left:4px;letter-spacing:0.2px;">Meta Partner</span>
                   </td>
                 </tr>
               </table>

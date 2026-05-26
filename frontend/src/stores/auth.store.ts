@@ -90,7 +90,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'crm-auth',
+      name: 'crm-auth-v2',
       // Persistir apenas o flag de autenticação — dados do usuário (role, permissions)
       // são recarregados do backend via /auth/me para evitar exposição no localStorage
       partialize: (state) => ({ isAuthenticated: state.isAuthenticated }),
