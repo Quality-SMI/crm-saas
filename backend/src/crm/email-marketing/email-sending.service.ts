@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
@@ -16,6 +18,7 @@ export class EmailSendingService {
   private readonly resend: Resend | null;
   private readonly appUrl: string;
   private readonly backendUrl: string;
+  private readonly logoSrc: string;
 
   constructor(
     private readonly dataSource: DataSource,
@@ -26,6 +29,22 @@ export class EmailSendingService {
       this.configService.get<string>('APP_URL') ?? 'http://localhost:3001';
     this.backendUrl =
       this.configService.get<string>('BACKEND_URL') ?? 'http://localhost:3000';
+
+    // Tenta embutir o logo como base64 (funciona em clientes de email sem acesso a localhost).
+    // Em produção, se o arquivo não existir, usa a URL pública do APP_URL.
+    const logoPath =
+      this.configService.get<string>('LOGO_PATH') ??
+      path.join(process.cwd(), '..', 'frontend', 'public', 'logo.png');
+    if (fs.existsSync(logoPath)) {
+      const buf = fs.readFileSync(logoPath);
+      this.logoSrc = `data:image/png;base64,${buf.toString('base64')}`;
+      this.logger.log('Logo embutido como base64 no template de email');
+    } else {
+      this.logoSrc = `${this.appUrl}/logo.png`;
+      this.logger.warn(
+        `Logo não encontrado em ${logoPath} — usando URL: ${this.logoSrc}`,
+      );
+    }
 
     if (!apiKey) {
       this.logger.warn(
@@ -473,18 +492,12 @@ export class EmailSendingService {
         <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
           <!-- Header -->
           <tr>
-            <td style="background:#ffffff;padding:20px 32px;border-bottom:3px solid #e36420;">
-              <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                  <td style="vertical-align:middle;">
-                    <img src="${this.appUrl}/logo.png" alt="Quality SMI" height="44" style="display:block;height:44px;width:auto;max-width:180px;" />
-                  </td>
-                  <td align="right" style="vertical-align:middle;">
-                    <span style="display:inline-block;background:#4285F4;border-radius:4px;padding:3px 9px;font-size:10px;color:#ffffff;font-weight:700;margin-left:4px;letter-spacing:0.2px;">Google Partner</span>
-                    <span style="display:inline-block;background:#0866FF;border-radius:4px;padding:3px 9px;font-size:10px;color:#ffffff;font-weight:700;margin-left:4px;letter-spacing:0.2px;">Meta Partner</span>
-                  </td>
-                </tr>
-              </table>
+            <td style="background:#ffffff;padding:20px 32px 16px;border-bottom:3px solid #e36420;text-align:center;">
+              <img src="${this.logoSrc}" alt="Quality SMI" height="48" style="display:block;margin:0 auto 10px;height:48px;width:auto;max-width:200px;" />
+              <div>
+                <span style="display:inline-block;background:#4285F4;border-radius:4px;padding:3px 10px;font-size:10px;color:#ffffff;font-weight:700;margin:0 3px;letter-spacing:0.2px;">Google Partner</span>
+                <span style="display:inline-block;background:#0866FF;border-radius:4px;padding:3px 10px;font-size:10px;color:#ffffff;font-weight:700;margin:0 3px;letter-spacing:0.2px;">Meta Partner</span>
+              </div>
             </td>
           </tr>
           <!-- Body -->
