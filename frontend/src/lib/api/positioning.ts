@@ -16,6 +16,34 @@ export interface GscSnapshot {
   created_at: string;
 }
 
+export interface KeywordChange {
+  keyword: string;
+  prev_position: number | null;
+  curr_position: number | null;
+  delta: number | null;
+  type: 'improved' | 'declined' | 'new' | 'lost' | 'stable';
+  curr_clicks: number;
+  curr_impressions: number;
+}
+
+export interface MonthlyReport {
+  id: string;
+  client_id: string;
+  report_month: string;
+  curr_clicks: number;
+  curr_impressions: number;
+  curr_position: number | null;
+  curr_ctr: number | null;
+  curr_sessions: number;
+  prev_clicks: number;
+  prev_impressions: number;
+  prev_position: number | null;
+  prev_ctr: number | null;
+  prev_sessions: number;
+  keyword_changes: KeywordChange[];
+  created_at: string;
+}
+
 export const positioningApi = {
   getSnapshots(clientId: string, days = 90): Promise<GscSnapshot[]> {
     return apiClient.get(`/positioning/${clientId}/snapshots`, { params: { days } }).then((r) => r.data);
@@ -41,5 +69,13 @@ export const positioningApi = {
 
   runDiscovery(): Promise<{ matched: number; gscMatched: number; ga4Matched: number; unmatched: string[] }> {
     return apiClient.post('/positioning/discovery/run').then((r) => r.data);
+  },
+
+  getLatestMonthlyReport(clientId: string): Promise<MonthlyReport | null> {
+    return apiClient.get(`/positioning/${clientId}/monthly-reports/latest`).then((r) => r.data).catch(() => null);
+  },
+
+  generateMonthlyReport(clientId: string): Promise<{ message: string; report: MonthlyReport }> {
+    return apiClient.post(`/positioning/${clientId}/monthly-reports/generate`).then((r) => r.data);
   },
 };

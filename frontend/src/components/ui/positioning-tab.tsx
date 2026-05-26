@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, TrendingUp, MousePointerClick, Eye, ArrowUpDown, Download, X, AlertTriangle, CheckCircle, ExternalLink, Pencil, Check } from 'lucide-react';
-import { positioningApi, GscSnapshot } from '@/lib/api/positioning';
+import { RefreshCw, TrendingUp, MousePointerClick, Eye, ArrowUpDown, Download, X, AlertTriangle, CheckCircle, ExternalLink, Pencil, Check, TrendingDown, Minus, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { positioningApi, GscSnapshot, MonthlyReport } from '@/lib/api/positioning';
 import { keywordsApi } from '@/lib/api/keywords';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
@@ -113,6 +113,9 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [days, setDays] = useState(30);
+  const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportExpanded, setReportExpanded] = useState(false);
   const [showDownload, setShowDownload] = useState(false);
   const [clarityId, setClarityId] = useState(clarityProjectId ?? '');
   const [editingClarity, setEditingClarity] = useState(false);
@@ -129,14 +132,16 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
   const load = async () => {
     setLoading(true);
     try {
-      const [snaps, lat, kws] = await Promise.allSettled([
+      const [snaps, lat, kws, report] = await Promise.allSettled([
         positioningApi.getSnapshots(clientId, days),
         positioningApi.getLatest(clientId, days),
         keywordsApi.list(clientId),
+        positioningApi.getLatestMonthlyReport(clientId),
       ]);
       if (snaps.status === 'fulfilled') setSnapshots(snaps.value);
       if (lat.status === 'fulfilled') setLatest(lat.value);
       if (kws.status === 'fulfilled') setContractedKeywords(kws.value.map(k => k.keyword));
+      if (report.status === 'fulfilled') setMonthlyReport(report.value);
     } finally {
       setLoading(false);
     }
@@ -715,6 +720,170 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
           </div>
         </div>
       )}
+
+      {/* Relatório mensal comparativo */}
+      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+          <Sparkles size={14} className="text-indigo-500" />
+          <h3 className="text-sm font-semibold text-gray-700">Relatório Mensal</h3>
+          {monthlyReport && (
+            <span className="text-xs text-gray-400 ml-1">
+              · {new Date(monthlyReport.report_month + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+            </span>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <Tooltip text="Gerar relatório comparativo do mês atual manualmente">
+              <button
+                onClick={async () => {
+                  setGeneratingReport(true);
+                  try {
+                    const result = await positioningApi.generateMonthlyReport(clientId);
+                    setMonthlyReport(result.report);
+                    setReportExpanded(true);
+                  } catch {
+                    // silently fail
+                  } finally {
+                    setGeneratingReport(false);
+                  }
+                }}
+                disabled={generatingReport}
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw size={12} className={generatingReport ? 'animate-spin' : ''} />
+                {generatingReport ? 'Gerando...' : 'Gerar agora'}
+              </button>
+            </Tooltip>
+            {monthlyReport && (
+              <button
+                onClick={() => setReportExpanded(e => !e)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {reportExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {!monthlyReport && !generatingReport && (
+          <div className="px-4 py-6 text-center">
+            <p className="text-xs text-gray-400">Nenhum relatório mensal gerado ainda.</p>
+            <p className="text-xs text-gray-400 mt-1">O sistema gera automaticamente no 1º dia de cada mês às 7h.</p>
+          </div>
+        )}
+
+        {monthlyReport && (
+          <div>
+            {/* Metric delta cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-gray-50">
+              {(() => {
+                const clicksDelta = monthlyReport.curr_clicks - monthlyReport.prev_clicks;
+                const impDelta = monthlyReport.curr_impressions - monthlyReport.prev_impressions;
+                const posDelta = monthlyReport.prev_position != null && monthlyReport.curr_position != null
+                  ? monthlyReport.prev_position - monthlyReport.curr_position
+                  : null;
+                const sessionsDelta = monthlyReport.curr_sessions - monthlyReport.prev_sessions;
+
+                const DeltaBadge = ({ delta, inverse }: { delta: number | null; inverse?: boolean }) => {
+                  if (delta == null || isNaN(delta)) return <span className="text-xs text-gray-300">—</span>;
+                  const good = delta > 0;
+                  return (
+                    <span className={`flex items-center gap-0.5 text-xs font-semibold ${good ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {delta > 0 ? <TrendingUp size={11} /> : delta < 0 ? <TrendingDown size={11} /> : <Minus size={11} />}
+                      {delta > 0 ? '+' : ''}{delta !== 0 ? (inverse ? delta.toFixed(1) : delta.toLocaleString('pt-BR')) : '0'}
+                    </span>
+                  );
+                };
+
+                return [
+                  { label: 'Cliques', curr: monthlyReport.curr_clicks, delta: clicksDelta, fmt: (n: number) => n.toLocaleString('pt-BR') },
+                  { label: 'Impressões', curr: monthlyReport.curr_impressions, delta: impDelta, fmt: (n: number) => n.toLocaleString('pt-BR') },
+                  { label: 'Posição média', curr: monthlyReport.curr_position, delta: posDelta, fmt: (n: number | null) => n != null ? Number(n).toFixed(1) : '—', inverse: true },
+                  { label: 'Sessões orgânicas', curr: monthlyReport.curr_sessions, delta: sessionsDelta, fmt: (n: number) => n.toLocaleString('pt-BR') },
+                ].map(({ label, curr, delta, fmt, inverse }) => (
+                  <div key={label} className="px-4 py-3 flex flex-col gap-0.5">
+                    <span className="text-xs text-gray-400">{label}</span>
+                    <span className="text-base font-bold text-gray-800">{fmt(curr as any)}</span>
+                    <DeltaBadge delta={delta as number | null} inverse={inverse} />
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* Keyword changes table — collapsible */}
+            {reportExpanded && monthlyReport.keyword_changes.length > 0 && (
+              <div className="border-t border-gray-50">
+                <div className="overflow-auto max-h-64">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-left bg-white sticky top-0 z-10">
+                        <th className="px-4 py-1.5 text-gray-400 font-medium">Palavra-chave</th>
+                        <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Anterior</th>
+                        <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Atual</th>
+                        <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Variação</th>
+                        <th className="px-4 py-1.5 text-gray-400 font-medium text-right">Cliques</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...monthlyReport.keyword_changes]
+                        .sort((a, b) => {
+                          const order = { improved: 0, new: 1, stable: 2, declined: 3, lost: 4 };
+                          return order[a.type] - order[b.type];
+                        })
+                        .map((kc) => {
+                          const typeConfig = {
+                            improved: { label: '▲ Subiu', color: 'text-green-700 bg-green-50' },
+                            new: { label: '★ Nova', color: 'text-blue-700 bg-blue-50' },
+                            stable: { label: '= Estável', color: 'text-gray-500 bg-gray-50' },
+                            declined: { label: '▼ Caiu', color: 'text-red-700 bg-red-50' },
+                            lost: { label: '✕ Perdida', color: 'text-red-400 bg-red-50' },
+                          }[kc.type];
+                          return (
+                            <tr key={kc.keyword} className="border-b border-gray-50 hover:bg-gray-50">
+                              <td className="px-4 py-1.5 text-gray-700 font-medium">{kc.keyword}</td>
+                              <td className="px-4 py-1.5 text-right text-gray-400">
+                                {kc.prev_position != null ? Number(kc.prev_position).toFixed(1) : '—'}
+                              </td>
+                              <td className="px-4 py-1.5 text-right text-gray-700 font-semibold">
+                                {kc.curr_position != null ? Number(kc.curr_position).toFixed(1) : '—'}
+                              </td>
+                              <td className="px-4 py-1.5 text-right">
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold ${typeConfig.color}`}>
+                                  {kc.delta != null && kc.type !== 'stable' ? (kc.delta > 0 ? `+${kc.delta}` : kc.delta) : typeConfig.label}
+                                </span>
+                              </td>
+                              <td className="px-4 py-1.5 text-right text-gray-500">
+                                {kc.curr_clicks > 0 ? kc.curr_clicks.toLocaleString('pt-BR') : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 border-t border-gray-50 flex gap-3 text-xs text-gray-400">
+                  {(['improved','new','stable','declined','lost'] as const).map((t) => {
+                    const count = monthlyReport.keyword_changes.filter(k => k.type === t).length;
+                    if (!count) return null;
+                    const labels = { improved: 'subiram', new: 'novas', stable: 'estáveis', declined: 'caíram', lost: 'perdidas' };
+                    const colors = { improved: 'text-green-600', new: 'text-blue-600', stable: 'text-gray-400', declined: 'text-red-500', lost: 'text-red-400' };
+                    return <span key={t} className={colors[t]}>{count} {labels[t]}</span>;
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Show/hide keywords toggle */}
+            {monthlyReport.keyword_changes.length > 0 && (
+              <button
+                onClick={() => setReportExpanded(e => !e)}
+                className="w-full px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 border-t border-gray-50"
+              >
+                {reportExpanded ? <><ChevronUp size={12} />Ocultar palavras-chave</> : <><ChevronDown size={12} />Ver variação de {monthlyReport.keyword_changes.length} palavras-chave</>}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Microsoft Clarity */}
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">

@@ -17,6 +17,9 @@ export class GscSnapshot {
   @Column({ type: 'date' })
   date: string;
 
+  @Column({ type: 'int', default: 90 })
+  period_days: number;
+
   @Column({ type: 'int', default: 0 })
   total_clicks: number;
 

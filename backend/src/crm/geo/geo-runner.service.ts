@@ -13,6 +13,9 @@ import { NotificationsService } from '../notifications/notifications.service';
 // Slugs que usam Gemini com grounding web (simulação AI Overview)
 const GEMINI_GROUNDING_SLUGS = new Set(['gemini', 'ai_overview', 'ai-overview', 'aio']);
 
+// Slugs que simulam plataformas com busca web real (OpenAI Responses API + web_search_preview)
+const WEB_SEARCH_SLUGS = new Set(['perplexity', 'copilot', 'bing', 'you']);
+
 export interface AioResult {
   query: string;
   ai_overview_simulado: string;
@@ -93,12 +96,12 @@ export class GeoRunnerService {
     }
 
     let clients = 0, mentions = 0, errors = 0;
-    const citedClients: string[] = [];
+    const citedClients: Array<{ id: string; name: string; mentions: number }> = [];
 
     for (const [, { client, queries: cqs }] of byClient) {
       try {
         const r = await this.runForClient(client, cqs);
-        if (r.mentions > 0) citedClients.push(client.company_name);
+        if (r.mentions > 0) citedClients.push({ id: client.id, name: client.company_name, mentions: r.mentions });
         mentions += r.mentions;
         clients++;
       } catch (e) {
@@ -112,7 +115,7 @@ export class GeoRunnerService {
       await this.notificationsService.create(
         'GEO_CITATIONS',
         `${citedClients.length} cliente${citedClients.length > 1 ? 's' : ''} citado${citedClients.length > 1 ? 's' : ''} nas IAs`,
-        citedClients.join(', '),
+        citedClients.map(c => c.name).join(', '),
         { cited_clients: citedClients, total_mentions: mentions },
       ).catch(() => {});
     }
@@ -178,8 +181,11 @@ export class GeoRunnerService {
     if (GEMINI_GROUNDING_SLUGS.has(platform.slug) && process.env.GEMINI_API_KEY) {
       // Gemini com grounding — simula AI Overview do Google
       analysis = await this.analyzeWithGeminiGrounding(query.prompt, client);
+    } else if (WEB_SEARCH_SLUGS.has(platform.slug) && process.env.OPENAI_API_KEY) {
+      // Perplexity, Copilot — usam busca web real via Responses API
+      analysis = await this.analyzeWithOpenAIWebSearch(query.prompt, client);
     } else {
-      // ChatGPT direto — cobre ChatGPT, Perplexity, Copilot, Meta AI, e fallback de outros
+      // ChatGPT, Claude — resposta sem busca web
       const responseText = await this.callChatGpt(query.prompt);
       if (!responseText) return false;
       analysis = await this.analyzeResponseWithOpenAI(responseText, client);
@@ -227,27 +233,26 @@ export class GeoRunnerService {
       tools: [{ googleSearch: {} } as never],
     });
 
-    const systemInstruction = `Você é um especialista em GEO (Generative Engine Optimization) e AI Overview.
-Analise a query e retorne um JSON estruturado simulando o comportamento do AI Overview do Google.
-A empresa monitorada é: "${client.company_name}" (domínio: ${client.domain}).
-
-Retorne APENAS JSON válido com este formato exato:
+    const systemInstruction = `Você é um assistente que simula o comportamento do AI Overview do Google.
+Responda à query abaixo como o Google responderia em seu AI Overview, usando fontes reais da web.
+Retorne APENAS JSON válido com este formato (sem comentários, sem markdown):
 {
-  "query": "a query analisada",
-  "ai_overview_simulado": "resumo estilo AI Overview que o Google geraria",
+  "query": "a query respondida",
+  "ai_overview_simulado": "resposta completa estilo AI Overview",
   "principais_entidades": ["entidade1", "entidade2"],
   "fontes_citadas": ["https://dominio1.com", "https://dominio2.com"],
   "intencao_de_busca": "informacional|transacional|navegacional|comercial",
   "topicos_recorrentes": ["topico1", "topico2"],
   "oportunidades_geo": ["oportunidade1", "oportunidade2"],
   "padroes_semanticos": ["padrao1", "padrao2"],
-  "observacao": "Resultado inferido via Gemini grounding/web search. Não é um endpoint oficial do Google AI Overview.",
-  "client_mentioned": true,
-  "sentiment": "POSITIVE",
-  "sentiment_score": 0.8,
-  "ranking_position": 1,
-  "excerpt": "trecho onde o cliente é mencionado ou null"
-}`;
+  "observacao": "Resultado inferido via Gemini grounding. Não é o AI Overview oficial do Google.",
+  "client_mentioned": false,
+  "sentiment": "NEUTRAL",
+  "sentiment_score": 0.5,
+  "ranking_position": null,
+  "excerpt": null
+}
+IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO invente menções.`;
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\nQuery: ${prompt}` }] }],
@@ -300,15 +305,61 @@ Retorne APENAS JSON válido com este formato exato:
       observacao: parsed.observacao ?? 'Resultado inferido via Gemini grounding/web search.',
     };
 
+    // Verificar menção no texto real — não confiar apenas no campo client_mentioned da IA
+    const overviewText = (parsed.ai_overview_simulado ?? '').toLowerCase();
+    const nameVariants = [
+      client.company_name.toLowerCase(),
+      ...(client.domain ? [client.domain.replace(/^www\./, '').toLowerCase()] : []),
+    ];
+    const textMentions = nameVariants.some(v => v.length > 3 && overviewText.includes(v));
+    const isMentioned = textMentions || Boolean(parsed.client_mentioned);
+
     return {
-      mentioned: Boolean(parsed.client_mentioned),
+      mentioned: isMentioned,
       mention_type: 'DIRECT',
       sentiment: (['POSITIVE', 'NEUTRAL', 'NEGATIVE'].includes(parsed.sentiment) ? parsed.sentiment : 'NEUTRAL') as 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE',
       sentiment_score: Number(parsed.sentiment_score ?? 0.5),
       ranking_position: parsed.ranking_position ?? null,
-      excerpt: parsed.excerpt ?? parsed.ai_overview_simulado?.slice(0, 500) ?? null,
+      excerpt: parsed.excerpt ?? (isMentioned ? parsed.ai_overview_simulado?.slice(0, 500) : null) ?? null,
       urls_cited: allSources,
       geo_metadata: geoMetadata,
+    };
+  }
+
+  // ─── OpenAI Responses API com web search (Perplexity / Copilot) ───────────
+
+  private async analyzeWithOpenAIWebSearch(prompt: string, client: Client): Promise<MentionAnalysis> {
+    if (!this.openai) throw new Error('OPENAI_API_KEY não configurado');
+
+    const response = await (this.openai as any).responses.create({
+      model: 'gpt-4o-mini',
+      tools: [{ type: 'web_search_preview' }],
+      input: prompt,
+    });
+
+    // Extrair texto da resposta
+    const text: string = response.output_text ?? '';
+
+    // Extrair URLs das anotações (url_citation)
+    const urls: string[] = [];
+    for (const item of (response.output ?? [])) {
+      if (item.type === 'message') {
+        for (const content of (item.content ?? [])) {
+          if (content.type === 'output_text') {
+            for (const annotation of (content.annotations ?? [])) {
+              if (annotation.type === 'url_citation' && annotation.url) {
+                urls.push(annotation.url);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const analysis = await this.analyzeResponseWithOpenAI(text, client);
+    return {
+      ...analysis,
+      urls_cited: [...new Set([...analysis.urls_cited, ...urls])].filter(u => u.startsWith('http')),
     };
   }
 

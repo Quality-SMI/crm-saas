@@ -1,0 +1,446 @@
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
+import { Resend } from 'resend';
+
+interface AudienceMember {
+  email: string;
+  name: string | null;
+  type: 'client' | 'lead';
+  id: string;
+}
+
+@Injectable()
+export class EmailSendingService {
+  private readonly logger = new Logger(EmailSendingService.name);
+  private readonly resend: Resend | null;
+  private readonly appUrl: string;
+
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
+  ) {
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    this.appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3001';
+
+    if (!apiKey) {
+      this.logger.warn(
+        'RESEND_API_KEY não configurado — os e-mails serão simulados (modo sandbox)',
+      );
+      this.resend = null;
+    } else {
+      this.resend = new Resend(apiKey);
+    }
+  }
+
+  async sendCampaign(campaignId: string, opts?: { limit?: number; offset?: number }): Promise<void> {
+    const campaigns = await this.dataSource.query(
+      `SELECT * FROM crm.email_campaigns WHERE id = $1`,
+      [campaignId],
+    );
+
+    if (!campaigns.length) {
+      throw new BadRequestException('Campanha não encontrada');
+    }
+
+    const campaign = campaigns[0];
+
+    if (campaign.status !== 'DRAFT' && campaign.status !== 'SCHEDULED') {
+      throw new BadRequestException(
+        `Campanha não pode ser enviada no status atual: ${campaign.status}`,
+      );
+    }
+
+    await this.dataSource.query(
+      `UPDATE crm.email_campaigns SET status = 'SENDING', sent_at = NOW(), updated_at = NOW() WHERE id = $1`,
+      [campaignId],
+    );
+
+    const audience = await this.resolveAudience(campaign);
+
+    const unsubscribeRows = await this.dataSource.query(
+      `SELECT email FROM crm.email_unsubscribes`,
+    );
+    const unsubscribedEmails = new Set<string>(
+      unsubscribeRows.map((r: { email: string }) => r.email.toLowerCase()),
+    );
+
+    let filtered = audience.filter(
+      (m) => !unsubscribedEmails.has(m.email.toLowerCase()),
+    );
+
+    if (opts?.offset || opts?.limit) {
+      const start = opts.offset ?? 0;
+      const end = opts.limit ? start + opts.limit : undefined;
+      filtered = filtered.slice(start, end);
+      this.logger.log(
+        `Envio parcial: offset=${start}, limit=${opts.limit ?? 'ilimitado'}, selecionados=${filtered.length}`,
+      );
+    }
+
+    if (filtered.length > 0) {
+      const placeholders = filtered
+        .map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`)
+        .join(', ');
+      const values: unknown[] = [campaignId];
+      filtered.forEach((m) => {
+        values.push(m.email, m.name ?? null, m.type, m.id ?? null);
+      });
+
+      await this.dataSource.query(
+        `INSERT INTO crm.email_campaign_recipients (campaign_id, email, name, recipient_type, recipient_id)
+         VALUES ${placeholders}
+         ON CONFLICT DO NOTHING`,
+        values,
+      );
+    }
+
+    await this.dataSource.query(
+      `UPDATE crm.email_campaigns SET total_recipients = $1, updated_at = NOW() WHERE id = $2`,
+      [filtered.length, campaignId],
+    );
+
+    const BATCH_SIZE = 50;
+    let sentCount = 0;
+
+    for (let i = 0; i < filtered.length; i += BATCH_SIZE) {
+      const batch = filtered.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (recipient) => {
+          try {
+            const htmlWithUnsubscribe = this.injectUnsubscribeFooter(
+              campaign.html_body,
+              recipient.email,
+              campaignId,
+            );
+
+            if (!this.resend) {
+              await this.dataSource.query(
+                `UPDATE crm.email_campaign_recipients
+                 SET status = 'SENT', sent_at = NOW()
+                 WHERE campaign_id = $1 AND email = $2`,
+                [campaignId, recipient.email],
+              );
+              sentCount++;
+              return;
+            }
+
+            const result = await this.resend.emails.send({
+              from: `${campaign.from_name} <${campaign.from_email}>`,
+              to: recipient.email,
+              subject: campaign.subject,
+              html: htmlWithUnsubscribe,
+              ...(campaign.reply_to ? { replyTo: campaign.reply_to } : {}),
+            });
+
+            if ((result as any)?.error) {
+              const err = (result as any).error;
+              throw new Error(`Resend: ${err.message ?? err.name ?? 'erro desconhecido'}`);
+            }
+
+            const messageId = (result as any)?.data?.id ?? null;
+
+            await this.dataSource.query(
+              `UPDATE crm.email_campaign_recipients
+               SET status = 'SENT', sent_at = NOW(), resend_message_id = $3
+               WHERE campaign_id = $1 AND email = $2`,
+              [campaignId, recipient.email, messageId],
+            );
+            sentCount++;
+          } catch (err) {
+            this.logger.error(
+              `Falha ao enviar para ${recipient.email}: ${(err as Error).message}`,
+            );
+            await this.dataSource.query(
+              `UPDATE crm.email_campaign_recipients
+               SET status = 'FAILED'
+               WHERE campaign_id = $1 AND email = $2`,
+              [campaignId, recipient.email],
+            );
+          }
+        }),
+      );
+
+      await this.dataSource.query(
+        `UPDATE crm.email_campaigns SET sent_count = $1, updated_at = NOW() WHERE id = $2`,
+        [sentCount, campaignId],
+      );
+
+      if (i + BATCH_SIZE < filtered.length) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    await this.dataSource.query(
+      `UPDATE crm.email_campaigns
+       SET status = 'SENT', sent_count = $1, updated_at = NOW()
+       WHERE id = $2`,
+      [sentCount, campaignId],
+    );
+  }
+
+  async processWebhook(payload: any): Promise<void> {
+    const type: string = payload?.type ?? '';
+    const messageId: string | undefined =
+      payload?.data?.email_id ?? payload?.data?.id ?? undefined;
+
+    if (!messageId) {
+      this.logger.warn('Webhook recebido sem message_id', payload);
+      return;
+    }
+
+    const recipients = await this.dataSource.query(
+      `SELECT * FROM crm.email_campaign_recipients WHERE resend_message_id = $1`,
+      [messageId],
+    );
+
+    if (!recipients.length) {
+      this.logger.warn(`Recipient não encontrado para message_id: ${messageId}`);
+      return;
+    }
+
+    const recipient = recipients[0];
+
+    switch (type) {
+      case 'email.opened': {
+        await this.dataSource.query(
+          `UPDATE crm.email_campaign_recipients
+           SET status = 'OPENED', opened_at = NOW()
+           WHERE id = $1 AND (status = 'SENT' OR status = 'OPENED')`,
+          [recipient.id],
+        );
+        await this.dataSource.query(
+          `UPDATE crm.email_campaigns SET open_count = open_count + 1, updated_at = NOW() WHERE id = $1`,
+          [recipient.campaign_id],
+        );
+        break;
+      }
+
+      case 'email.clicked': {
+        await this.dataSource.query(
+          `UPDATE crm.email_campaign_recipients
+           SET status = 'CLICKED', clicked_at = NOW()
+           WHERE id = $1`,
+          [recipient.id],
+        );
+        await this.dataSource.query(
+          `UPDATE crm.email_campaigns SET click_count = click_count + 1, updated_at = NOW() WHERE id = $1`,
+          [recipient.campaign_id],
+        );
+        break;
+      }
+
+      case 'email.bounced': {
+        const bounceReason: string =
+          payload?.data?.bounce?.message ?? payload?.data?.reason ?? 'Bounce';
+        await this.dataSource.query(
+          `UPDATE crm.email_campaign_recipients
+           SET status = 'BOUNCED', bounce_reason = $2
+           WHERE id = $1`,
+          [recipient.id, bounceReason],
+        );
+        await this.dataSource.query(
+          `UPDATE crm.email_campaigns SET bounce_count = bounce_count + 1, updated_at = NOW() WHERE id = $1`,
+          [recipient.campaign_id],
+        );
+        break;
+      }
+
+      case 'email.complained': {
+        await this.dataSource.query(
+          `UPDATE crm.email_campaign_recipients
+           SET status = 'UNSUBSCRIBED'
+           WHERE id = $1`,
+          [recipient.id],
+        );
+        await this.dataSource.query(
+          `INSERT INTO crm.email_unsubscribes (email, campaign_id, reason)
+           VALUES ($1, $2, 'spam_complaint')
+           ON CONFLICT (email) DO NOTHING`,
+          [recipient.email, recipient.campaign_id],
+        );
+        await this.dataSource.query(
+          `UPDATE crm.email_campaigns SET unsubscribe_count = unsubscribe_count + 1, updated_at = NOW() WHERE id = $1`,
+          [recipient.campaign_id],
+        );
+        break;
+      }
+
+      default:
+        this.logger.log(`Webhook event ignorado: ${type}`);
+    }
+  }
+
+  private async resolveAudience(campaign: any): Promise<AudienceMember[]> {
+    const audienceType: string = campaign.audience_type ?? 'all_clients';
+
+    switch (audienceType) {
+      case 'all_clients':
+      case 'active_clients':
+        return this.dataSource.query(
+          `SELECT email, company_name AS name, id, 'client' AS type
+           FROM crm.clients
+           WHERE deleted_at IS NULL AND email IS NOT NULL AND email != ''`,
+        );
+
+      case 'all_leads':
+        return this.dataSource.query(
+          `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
+           FROM crm.leads
+           WHERE deleted_at IS NULL AND contact_email IS NOT NULL AND contact_email != ''`,
+        );
+
+      case 'new_leads':
+        return this.dataSource.query(
+          `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
+           FROM crm.leads
+           WHERE deleted_at IS NULL AND contact_email IS NOT NULL AND contact_email != ''
+             AND stage = 'NEW'`,
+        );
+
+      case 'qualified_leads':
+        return this.dataSource.query(
+          `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
+           FROM crm.leads
+           WHERE deleted_at IS NULL AND contact_email IS NOT NULL AND contact_email != ''
+             AND stage = 'QUALIFIED'`,
+        );
+
+      case 'won_leads':
+        return this.dataSource.query(
+          `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
+           FROM crm.leads
+           WHERE deleted_at IS NULL AND contact_email IS NOT NULL AND contact_email != ''
+             AND stage = 'WON'`,
+        );
+
+      case 'lost_leads':
+        return this.dataSource.query(
+          `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
+           FROM crm.leads
+           WHERE deleted_at IS NULL AND contact_email IS NOT NULL AND contact_email != ''
+             AND stage = 'LOST'`,
+        );
+
+      case 'proposal_leads':
+        return this.dataSource.query(
+          `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
+           FROM crm.leads
+           WHERE deleted_at IS NULL AND contact_email IS NOT NULL AND contact_email != ''
+             AND stage = 'PROPOSAL'`,
+        );
+
+      case 'negotiation_leads':
+        return this.dataSource.query(
+          `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
+           FROM crm.leads
+           WHERE deleted_at IS NULL AND contact_email IS NOT NULL AND contact_email != ''
+             AND stage = 'NEGOTIATION'`,
+        );
+
+      case 'manual': {
+        const filters: Record<string, unknown> =
+          typeof campaign.audience_filters === 'string'
+            ? JSON.parse(campaign.audience_filters)
+            : (campaign.audience_filters ?? {});
+        const emails: string[] = Array.isArray(filters['emails']) ? (filters['emails'] as string[]) : [];
+        return emails
+          .map((e: string) => e.trim().toLowerCase())
+          .filter((e: string) => e.includes('@'))
+          .map((email: string) => ({ email, name: null, type: 'lead' as const, id: null as unknown as string }));
+      }
+
+      default:
+        this.logger.warn(`audience_type desconhecido: ${audienceType}`);
+        return [];
+    }
+  }
+
+  private injectUnsubscribeFooter(
+    html: string,
+    email: string,
+    campaignId: string,
+  ): string {
+    const encodedEmail = encodeURIComponent(email);
+    const unsubscribeUrl = `${this.appUrl}/unsubscribe?email=${encodedEmail}&campaign=${campaignId}`;
+
+    // If already a full HTML document, just inject footer before </body>
+    if (html.includes('</body>') || html.includes('<html')) {
+      const footer = `
+<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-family:sans-serif;font-size:12px;color:#9ca3af;">
+  <p style="margin:4px 0;">Você está recebendo este e-mail porque está cadastrado em nossa lista.</p>
+  <p style="margin:4px 0;"><a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Cancelar inscrição</a></p>
+</div>`;
+      return html.includes('</body>')
+        ? html.replace('</body>', `${footer}</body>`)
+        : html + footer;
+    }
+
+    // Wrap TipTap/prose HTML in a proper email shell
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1a2332 60%,#e36420 100%);padding:24px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td>
+                    <span style="font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;display:block;">Quality SMI</span>
+                    <span style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:0.3px;">Sistema de Marketing para Internet</span>
+                  </td>
+                  <td align="right" style="vertical-align:middle;">
+                    <span style="display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:3px 8px;font-size:10px;color:#ffffff;font-weight:600;margin-left:4px;">Google Partner</span>
+                    <span style="display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:3px 8px;font-size:10px;color:#ffffff;font-weight:600;margin-left:4px;">Meta Partner</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;color:#1f2937;font-size:15px;line-height:1.7;">
+              <style>
+                h1{font-size:26px;font-weight:700;color:#111827;margin:0 0 16px;line-height:1.3}
+                h2{font-size:20px;font-weight:600;color:#1f2937;margin:24px 0 12px;line-height:1.4}
+                h3{font-size:17px;font-weight:600;color:#374151;margin:20px 0 10px}
+                p{margin:0 0 14px;color:#374151}
+                ul,ol{margin:0 0 14px;padding-left:20px;color:#374151}
+                li{margin-bottom:6px}
+                a{color:#1d4ed8}
+                strong{color:#111827}
+                blockquote{margin:16px 0;padding:12px 16px;border-left:3px solid #e36420;background:#fef3e8;color:#92400e;font-style:italic;border-radius:0 6px 6px 0}
+                hr{border:none;border-top:1px solid #e5e7eb;margin:24px 0}
+              </style>
+              ${html}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;">
+              <p style="margin:0 0 4px;font-weight:600;color:#6b7280;">Quality SMI — Sistema de Marketing para Internet</p>
+              <p style="margin:0 0 8px;">
+                <span style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:3px;padding:2px 6px;font-size:10px;color:#6b7280;font-weight:600;margin:0 2px;">Google Partner</span>
+                <span style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:3px;padding:2px 6px;font-size:10px;color:#6b7280;font-weight:600;margin:0 2px;">Meta Partner</span>
+              </p>
+              <p style="margin:0;"><a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:underline;">Cancelar inscrição</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+  }
+}

@@ -20,6 +20,7 @@ import {
   Bot,
   Plug,
   PenLine,
+  Mail,
 } from 'lucide-react';
 
 const GEO_ALLOWED_ROLES = ['SUPER_ADMIN', 'DIRECTOR', 'MANAGER', 'TECHNICAL', 'WRITER'];
@@ -30,6 +31,7 @@ const navMain = [
   { href: '/leads', label: 'Leads', icon: TrendingUp },
   { href: '/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/blog', label: 'Blog', icon: PenLine },
+  { href: '/email-marketing', label: 'Email Marketing', icon: Mail },
 ];
 
 const navIntelligence = [
@@ -65,10 +67,9 @@ export default function InternalLayout({ children }: { children: React.ReactNode
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
 
-  // Ao entrar em /geo, marca todas como lidas e zera badge
+  // Zera badge visual ao entrar em /geo (notificações marcadas individualmente ao clicar)
   useEffect(() => {
-    if (pathname.startsWith('/geo') && geoUnread > 0) {
-      notificationsApi.markAllRead().catch(() => {});
+    if (pathname === '/geo' && geoUnread > 0) {
       setGeoUnread(0);
     }
   }, [pathname]);

@@ -333,10 +333,13 @@ export class PositioningService implements OnModuleInit {
   }
 
   async getLatestSnapshot(clientId: string, days = 90): Promise<GscSnapshot | null> {
-    return this.snapshotRepo.findOne({
-      where: { client_id: clientId, period_days: days } as any,
-      order: { date: 'DESC' },
-    });
+    return this.snapshotRepo
+      .createQueryBuilder('s')
+      .where('s.client_id = :clientId', { clientId })
+      .andWhere('s.period_days = :days', { days })
+      .orderBy('s.date', 'DESC')
+      .limit(1)
+      .getOne();
   }
 
   getConfigStatus(): { configured: boolean; hasClientId: boolean; hasSecret: boolean; hasRefreshToken: boolean } {

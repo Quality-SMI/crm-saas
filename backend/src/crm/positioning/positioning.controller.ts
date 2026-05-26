@@ -5,13 +5,17 @@ import { RolesGuard } from '../../iam/auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { PositioningService } from './positioning.service';
+import { PositioningReportService } from './positioning-report.service';
 
 @ApiTags('positioning')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('positioning')
 export class PositioningController {
-  constructor(private readonly service: PositioningService) {}
+  constructor(
+    private readonly service: PositioningService,
+    private readonly reportService: PositioningReportService,
+  ) {}
 
   @Get('config/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
@@ -62,5 +66,33 @@ export class PositioningController {
   async syncClient(@Param('clientId', ParseUUIDPipe) clientId: string) {
     await this.service.syncClient(clientId);
     return { message: 'Sincronização concluída' };
+  }
+
+  // ─── Relatórios mensais ───────────────────────────────────────────────────
+
+  @Get(':clientId/monthly-reports')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  async listReports(@Param('clientId', ParseUUIDPipe) clientId: string) {
+    return this.reportService.listReports(clientId);
+  }
+
+  @Get(':clientId/monthly-reports/latest')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  async getLatestReport(@Param('clientId', ParseUUIDPipe) clientId: string) {
+    return this.reportService.getLatestReport(clientId);
+  }
+
+  @Post(':clientId/monthly-reports/generate')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR)
+  async generateReport(@Param('clientId', ParseUUIDPipe) clientId: string) {
+    const report = await this.reportService.generateReportForClient(clientId);
+    return { message: 'Relatório gerado', report };
+  }
+
+  @Post('monthly-reports/generate-all')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR)
+  async generateAllReports() {
+    this.reportService.generateAllReports().catch(() => {});
+    return { message: 'Geração de relatórios mensais iniciada' };
   }
 }

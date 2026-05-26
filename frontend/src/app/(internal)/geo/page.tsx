@@ -2,21 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bot, ChevronRight, Search } from 'lucide-react';
+import { Bot, ChevronRight, Search, Sparkles, X, Bell } from 'lucide-react';
 import { clientsApi, Client } from '@/lib/api/clients';
+import { notificationsApi, Notification } from '@/lib/api/notifications';
+
+interface CitedClient { id: string; name: string; mentions: number }
 
 export default function GeoIndexPage() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     clientsApi.list({ limit: 200, status: 'ACTIVE' })
       .then((res) => setClients(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    notificationsApi.list()
+      .then((all) => setNotifications(all.filter((n) => !n.is_read && n.type === 'GEO_CITATIONS')))
+      .catch(() => {});
   }, []);
+
+  const dismissNotification = (id: string) => {
+    notificationsApi.markRead(id).catch(() => {});
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
 
   const filtered = clients.filter((c) =>
     c.company_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -34,6 +47,55 @@ export default function GeoIndexPage() {
           <p className="text-sm text-gray-500">Selecione um cliente para ver o monitoramento de visibilidade em IAs</p>
         </div>
       </div>
+
+      {/* Notificações de menções não lidas */}
+      {notifications.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {notifications.map((notif) => {
+            const meta = notif.metadata as { cited_clients?: CitedClient[] } | null;
+            const citedClients: CitedClient[] = Array.isArray(meta?.cited_clients)
+              ? (meta!.cited_clients as CitedClient[])
+              : [];
+            return (
+              <div key={notif.id} className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <Bell size={15} className="text-blue-500 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-blue-800">{notif.title}</p>
+                    <p className="text-xs text-blue-600 mt-0.5">
+                      {new Date(notif.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {citedClients.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {citedClients.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => { dismissNotification(notif.id); router.push(`/geo/${c.id}`); }}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-white border border-blue-200 rounded-lg text-xs text-blue-700 font-medium hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors"
+                          >
+                            <Sparkles size={10} />
+                            {c.name}
+                            <span className="text-blue-400 font-normal">({c.mentions})</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-blue-700 mt-1">{notif.body}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => dismissNotification(notif.id)}
+                    className="text-blue-400 hover:text-blue-600 transition-colors shrink-0"
+                    title="Dispensar"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="relative mb-4">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

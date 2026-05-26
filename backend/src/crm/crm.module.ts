@@ -10,8 +10,9 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { BlogModule } from './blog/blog.module';
 import { ScoresModule } from './scores/scores.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { EmailMarketingModule } from './email-marketing/email-marketing.module';
 
 @Module({
-  imports: [ClientsModule, LookupModule, LeadsModule, AppointmentsModule, GeoModule, PositioningModule, KeywordsModule, ApiKeysModule, BlogModule, ScoresModule, NotificationsModule],
+  imports: [ClientsModule, LookupModule, LeadsModule, AppointmentsModule, GeoModule, PositioningModule, KeywordsModule, ApiKeysModule, BlogModule, ScoresModule, NotificationsModule, EmailMarketingModule],
 })
 export class CrmModule {}
