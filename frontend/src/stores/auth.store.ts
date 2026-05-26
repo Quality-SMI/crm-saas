@@ -24,6 +24,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  initUser: () => Promise<void>;
   hasRole: (...roles: UserRole[]) => boolean;
   hasPermission: (permission: string) => boolean;
   isInternal: () => boolean;
@@ -41,7 +42,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data } = await api.post('/auth/login', { email, password });
           const { user } = data.data;
-          // Token agora vive em cookie HttpOnly — gerenciado pelo browser/backend.
+          // Token vive em cookie HttpOnly — gerenciado pelo browser/backend.
+          // Dados do usuário ficam apenas em memória (não persistidos no localStorage).
           set({ user, isAuthenticated: true, isLoading: false });
         } catch (err) {
           set({ isLoading: false });
@@ -53,6 +55,17 @@ export const useAuthStore = create<AuthState>()(
         try {
           await api.post('/auth/logout');
         } finally {
+          set({ user: null, isAuthenticated: false });
+        }
+      },
+
+      // Chamado pelo AuthGuard após hidratação quando user é null mas isAuthenticated é true
+      initUser: async () => {
+        try {
+          const { data } = await api.get('/auth/me');
+          set({ user: data.data, isAuthenticated: true });
+        } catch {
+          // Token inválido ou expirado — limpar estado
           set({ user: null, isAuthenticated: false });
         }
       },
@@ -78,7 +91,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'crm-auth',
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+      // Persistir apenas o flag de autenticação — dados do usuário (role, permissions)
+      // são recarregados do backend via /auth/me para evitar exposição no localStorage
+      partialize: (state) => ({ isAuthenticated: state.isAuthenticated }),
     },
   ),
 );

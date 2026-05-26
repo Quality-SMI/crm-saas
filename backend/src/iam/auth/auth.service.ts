@@ -46,6 +46,13 @@ export class AuthService {
       },
     });
 
+    // Verificar lockout ANTES de validar a senha — impede distinguir senha correta via
+    // mensagem de erro diferente quando a conta está bloqueada
+    if (user?.isLocked) {
+      await bcrypt.compare(dto.password, DUMMY_HASH); // trabalho constante para manter timing
+      throw new UnauthorizedException('Conta temporariamente bloqueada. Tente novamente mais tarde.');
+    }
+
     // Always compare to prevent timing attacks
     const hashToCompare = user?.password_hash ?? DUMMY_HASH;
     const isValid = await bcrypt.compare(dto.password, hashToCompare);
@@ -54,10 +61,6 @@ export class AuthService {
       if (user) await this.incrementFailedAttempts(user);
       // Generic message — never reveal if email exists
       throw new UnauthorizedException('Credenciais inválidas');
-    }
-
-    if (user.isLocked) {
-      throw new UnauthorizedException('Conta temporariamente bloqueada. Tente novamente mais tarde.');
     }
 
     await this.resetFailedAttempts(user);
@@ -182,6 +185,16 @@ export class AuthService {
     );
 
     this.logger.log(`PASSWORD_RESET_SUCCESS user=${user.id} ip=${ip}`);
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.userRepo.findOne({
+      where: { id: userId, is_active: true },
+      select: { id: true, email: true, name: true, role: true, client_id: true },
+    });
+    if (!user) throw new UnauthorizedException('Usuário não encontrado');
+    const permissions = await this.permissionsService.getEffectivePermissions(userId, user.role);
+    return { ...this.sanitizeUser(user), permissions };
   }
 
   async validateJwtPayload(payload: { sub: string; jti: string }) {

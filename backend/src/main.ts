@@ -7,7 +7,8 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  // rawBody: true preserva buffer bruto para verificação de assinatura de webhooks
+  const app = await NestFactory.create(AppModule, { bodyParser: true, rawBody: true });
 
   // Atrás de NGINX — confia em X-Forwarded-* (req.ip vira o IP real do cliente)
   const httpAdapter = app.getHttpAdapter().getInstance();
@@ -16,14 +17,29 @@ async function bootstrap() {
   }
 
   // Security
-  app.use(helmet());
+  app.use(
+    helmet({
+      frameguard: { action: 'deny' },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'none'"],
+          scriptSrc: ["'none'"],
+          styleSrc: ["'none'"],
+          imgSrc: ["'none'"],
+          connectSrc: ["'self'"],
+        },
+      },
+    }),
+  );
   app.use(compression());
   app.use(cookieParser());
 
-  // CORS — em prod, FRONTEND_URL é o domínio público; credentials para enviar cookie HttpOnly
+  // CORS — origens, métodos e headers explícitos; credentials para enviar cookie HttpOnly
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global prefix

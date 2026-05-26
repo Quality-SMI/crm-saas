@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomUUID } from 'crypto';
+import * as crypto from 'crypto';
 import { ClientApiKey } from './entities/client-api-key.entity';
 import { CreateApiKeyDto, UpdateApiKeyDto } from './dto/api-key.dto';
 
@@ -20,11 +20,8 @@ export class ApiKeysService {
   }
 
   async create(clientId: string, dto: CreateApiKeyDto): Promise<ClientApiKey> {
-    const apiKey = this.repo.create({
-      client_id: clientId,
-      name: dto.name,
-      key: randomUUID(),
-    });
+    const key = `qsmi_${crypto.randomBytes(32).toString('hex')}`;
+    const apiKey = this.repo.create({ client_id: clientId, name: dto.name, key });
     return this.repo.save(apiKey);
   }
 

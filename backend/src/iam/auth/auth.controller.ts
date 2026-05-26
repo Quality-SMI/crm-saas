@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -118,5 +119,11 @@ export class AuthController {
     const ip = req.ip || 'unknown';
     await this.authService.resetPassword(dto.token, dto.password, ip);
     return { data: { ok: true } };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async me(@CurrentUser() user: User) {
+    return { data: await this.authService.getProfile(user.id) };
   }
 }

@@ -1,7 +1,53 @@
-import { Body, Controller, HttpCode, HttpStatus, Logger, Post } from '@nestjs/common';
+import * as crypto from 'crypto';
+import {
+  Body,
+  Controller,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Post,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import { EmailSendingService } from './email-sending.service';
 import { EmailMarketingService } from './email-marketing.service';
+
+/**
+ * Verifica assinatura Standard Webhooks (Resend usa este formato via svix).
+ * Spec: https://www.standardwebhooks.com/
+ */
+function verifyResendSignature(
+  rawBody: Buffer,
+  msgId: string | undefined,
+  timestamp: string | undefined,
+  signature: string | undefined,
+  secret: string,
+): boolean {
+  if (!msgId || !timestamp || !signature) return false;
+
+  // Rejeita timestamps fora de ±5 minutos (previne replay attacks)
+  const ts = parseInt(timestamp, 10);
+  if (isNaN(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > 300) return false;
+
+  const toSign = `${msgId}.${timestamp}.${rawBody.toString('utf8')}`;
+  const secretBytes = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
+  const expected = crypto.createHmac('sha256', secretBytes).update(toSign).digest('base64');
+
+  // Signature pode ter múltiplos valores separados por espaço: "v1,<sig1> v1,<sig2>"
+  return signature.split(' ').some((s) => {
+    const sig = s.replace(/^v1,/, '');
+    try {
+      const a = Buffer.from(sig, 'base64');
+      const b = Buffer.from(expected, 'base64');
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
+  });
+}
 
 @ApiTags('email-marketing-webhooks')
 @Controller('email-marketing/webhooks')
@@ -11,11 +57,30 @@ export class EmailMarketingWebhookController {
   constructor(
     private readonly emailSendingService: EmailSendingService,
     private readonly emailMarketingService: EmailMarketingService,
+    private readonly config: ConfigService,
   ) {}
 
   @Post('resend')
   @HttpCode(HttpStatus.OK)
-  async handleResendWebhook(@Body() payload: any): Promise<{ ok: boolean }> {
+  async handleResendWebhook(
+    @Req() req: { rawBody?: Buffer },
+    @Headers('svix-id') svixId: string,
+    @Headers('svix-timestamp') svixTimestamp: string,
+    @Headers('svix-signature') svixSignature: string,
+    @Body() payload: Record<string, unknown>,
+  ): Promise<{ ok: boolean }> {
+    const secret = this.config.get<string>('RESEND_WEBHOOK_SECRET');
+
+    if (secret) {
+      const rawBody = req.rawBody;
+      if (!rawBody || !verifyResendSignature(rawBody, svixId, svixTimestamp, svixSignature, secret)) {
+        this.logger.warn('WEBHOOK_RESEND_INVALID_SIGNATURE');
+        throw new UnauthorizedException('Assinatura de webhook inválida');
+      }
+    } else {
+      this.logger.warn('RESEND_WEBHOOK_SECRET não configurado — verificação de assinatura desativada');
+    }
+
     this.emailSendingService.processWebhook(payload).catch((err: Error) => {
       this.logger.error(`Erro ao processar webhook Resend: ${err.message}`);
     });
@@ -25,8 +90,27 @@ export class EmailMarketingWebhookController {
   @Post('unsubscribe')
   @HttpCode(HttpStatus.OK)
   async handleUnsubscribe(
+    @Headers('x-webhook-secret') incomingSecret: string,
     @Body() body: { email: string; reason?: string },
   ): Promise<{ ok: boolean }> {
+    const expected = this.config.get<string>('WEBHOOK_UNSUBSCRIBE_SECRET');
+
+    if (expected) {
+      if (!incomingSecret) {
+        throw new UnauthorizedException('Header x-webhook-secret ausente');
+      }
+      // timingSafeEqual previne timing attacks na comparação de segredos
+      const a = Buffer.from(incomingSecret);
+      const b = Buffer.from(expected);
+      const valid = a.length === b.length && crypto.timingSafeEqual(a, b);
+      if (!valid) {
+        this.logger.warn('WEBHOOK_UNSUBSCRIBE_INVALID_SECRET');
+        throw new UnauthorizedException('Segredo de webhook inválido');
+      }
+    } else {
+      this.logger.warn('WEBHOOK_UNSUBSCRIBE_SECRET não configurado — endpoint desprotegido');
+    }
+
     if (body?.email) {
       await this.emailMarketingService.addUnsubscribe(body.email, body.reason);
     }
