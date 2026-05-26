@@ -1,6 +1,14 @@
 import {
-  Body, Controller, Delete, Get, Param, ParseUUIDPipe,
-  Patch, Post, Query, UseGuards,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
@@ -17,8 +25,13 @@ import { QueryAppointmentsDto } from './dto/query-appointments.dto';
 import { ResponseDto } from '../../common/dto/response.dto';
 
 const ALL_INTERNAL = [
-  UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER,
-  UserRole.FINANCIAL, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES,
+  UserRole.SUPER_ADMIN,
+  UserRole.DIRECTOR,
+  UserRole.MANAGER,
+  UserRole.FINANCIAL,
+  UserRole.TECHNICAL,
+  UserRole.WRITER,
+  UserRole.SALES,
 ];
 
 @ApiTags('appointments')
@@ -31,10 +44,7 @@ export class AppointmentsController {
 
   @Post()
   @Roles(...ALL_INTERNAL)
-  async create(
-    @Body() dto: CreateAppointmentDto,
-    @CurrentUser() user: any,
-  ) {
+  async create(@Body() dto: CreateAppointmentDto, @CurrentUser() user: any) {
     const data = await this.svc.create(dto, user.id);
     return new ResponseDto(data, 'Agendamento criado');
   }
@@ -63,7 +73,12 @@ export class AppointmentsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.SALES)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.SALES,
+  )
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.svc.remove(id);
     return new ResponseDto(null, 'Agendamento removido');

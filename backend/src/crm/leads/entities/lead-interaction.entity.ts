@@ -29,7 +29,11 @@ export class LeadInteraction {
   @Column({ type: 'uuid', nullable: true })
   user_id: string | null;
 
-  @Column({ type: 'enum', enum: InteractionType, default: InteractionType.NOTE })
+  @Column({
+    type: 'enum',
+    enum: InteractionType,
+    default: InteractionType.NOTE,
+  })
   type: InteractionType;
 
   @Column({ type: 'text' })

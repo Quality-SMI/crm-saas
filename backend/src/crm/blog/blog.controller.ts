@@ -116,7 +116,10 @@ export class BlogController {
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Body() dto: CreateAuthorDto,
   ) {
-    return new ResponseDto(await this.svc.createAuthor(clientId, dto), 'Autor criado');
+    return new ResponseDto(
+      await this.svc.createAuthor(clientId, dto),
+      'Autor criado',
+    );
   }
 
   @Delete('authors/:id')
@@ -169,7 +172,10 @@ export class BlogController {
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Body() dto: CreateTagDto,
   ) {
-    return new ResponseDto(await this.svc.createTag(clientId, dto), 'Tag criada');
+    return new ResponseDto(
+      await this.svc.createTag(clientId, dto),
+      'Tag criada',
+    );
   }
 
   @Delete('tags/:id')

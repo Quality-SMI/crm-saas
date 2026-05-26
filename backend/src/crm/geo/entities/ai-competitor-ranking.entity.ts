@@ -1,6 +1,10 @@
 import {
-  Column, CreateDateColumn, Entity,
-  JoinColumn, ManyToOne, PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Client } from '../../clients/entities/client.entity';
 import { AiCompetitor } from './ai-competitor.entity';

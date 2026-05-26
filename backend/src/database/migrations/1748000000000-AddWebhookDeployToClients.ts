@@ -11,6 +11,8 @@ export class AddWebhookDeployToClients1748000000000 implements MigrationInterfac
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE crm.clients DROP COLUMN IF EXISTS webhook_deploy`);
+    await queryRunner.query(
+      `ALTER TABLE crm.clients DROP COLUMN IF EXISTS webhook_deploy`,
+    );
   }
 }

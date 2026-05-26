@@ -12,7 +12,10 @@ import { LeadStage } from './enums/lead-stage.enum';
 import { InteractionType } from './enums/interaction-type.enum';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 
-interface RequestUser { id: string; role: UserRole }
+interface RequestUser {
+  id: string;
+  role: UserRole;
+}
 
 @Injectable()
 export class LeadsService {
@@ -23,7 +26,10 @@ export class LeadsService {
     private readonly interactionRepo: Repository<LeadInteraction>,
   ) {}
 
-  async findAll(query: QueryLeadsDto, user: RequestUser): Promise<PaginatedResponseDto<Lead>> {
+  async findAll(
+    query: QueryLeadsDto,
+    user: RequestUser,
+  ): Promise<PaginatedResponseDto<Lead>> {
     const qb = this.leadRepo
       .createQueryBuilder('l')
       .leftJoinAndSelect('l.owner', 'owner')
@@ -82,13 +88,20 @@ export class LeadsService {
     return this.findOne(saved.id);
   }
 
-  async update(id: string, dto: UpdateLeadDto, userId: string, user?: RequestUser): Promise<Lead> {
+  async update(
+    id: string,
+    dto: UpdateLeadDto,
+    userId: string,
+    user?: RequestUser,
+  ): Promise<Lead> {
     const lead = await this.findOne(id, user);
     const { estimated_value, stage, ...rest } = dto;
 
     const fields: Partial<Lead> = {
       ...rest,
-      ...(estimated_value != null && { estimated_value: String(estimated_value) }),
+      ...(estimated_value != null && {
+        estimated_value: String(estimated_value),
+      }),
       ...(stage !== undefined && { stage }),
     };
 

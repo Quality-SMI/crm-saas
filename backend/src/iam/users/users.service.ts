@@ -39,7 +39,7 @@ export class UsersService {
     }
 
     const [data, total] = await this.userRepo.findAndCount({
-      where: where as any,
+      where: where,
       order: { name: 'ASC' },
       skip: query.skip,
       take: query.limit,
@@ -57,7 +57,9 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-    const exists = await this.userRepo.findOne({ where: { email: dto.email.toLowerCase() } });
+    const exists = await this.userRepo.findOne({
+      where: { email: dto.email.toLowerCase() },
+    });
     if (exists) throw new ConflictException('Email já cadastrado');
 
     const password_hash = await bcrypt.hash(dto.password, 12);
@@ -69,7 +71,12 @@ export class UsersService {
     return this.userRepo.save(user);
   }
 
-  async update(id: string, dto: UpdateUserDto, requesterId: string, requesterRole: UserRole): Promise<User> {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+    requesterId: string,
+    requesterRole: UserRole,
+  ): Promise<User> {
     const user = await this.findOne(id);
 
     // Only SUPER_ADMIN can change their own role or another SUPER_ADMIN's data

@@ -138,11 +138,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           <div>
             <p className="text-sm font-semibold text-red-800">Envio falhou — nenhum email foi entregue</p>
             <p className="text-xs text-red-600 mt-1">
-              O serviço de email (Resend) rejeitou o envio. Causa mais provável: o domínio <strong>qualitysmi.com.br</strong> ainda não está verificado no Resend.
+              O serviço de email (Resend) rejeitou o envio. Verifique se o endereço de remetente usa o domínio verificado <strong>marketing.qualitysmi.com.br</strong>.
             </p>
             <p className="text-xs text-red-500 mt-1">
-              Para corrigir: acesse resend.com → Domains → Add Domain → qualitysmi.com.br → adicione os registros DNS no Registro.br → clique em Verify.
-              Após verificar, volte ao rascunho e reenvie.
+              Use um remetente como <strong>noreply@marketing.qualitysmi.com.br</strong> e tente reenviar.
             </p>
           </div>
         </div>

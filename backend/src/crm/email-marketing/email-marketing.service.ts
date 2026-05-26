@@ -76,7 +76,10 @@ export class EmailMarketingService {
     return rows[0];
   }
 
-  async createCampaign(dto: CreateCampaignDto, userId: string): Promise<unknown> {
+  async createCampaign(
+    dto: CreateCampaignDto,
+    userId: string,
+  ): Promise<unknown> {
     const rows = await this.dataSource.query(
       `INSERT INTO crm.email_campaigns
          (name, subject, preview_text, html_body, from_name, from_email, reply_to,
@@ -115,15 +118,19 @@ export class EmailMarketingService {
 
     if (dto.name !== undefined) addField('name', dto.name);
     if (dto.subject !== undefined) addField('subject', dto.subject);
-    if (dto.preview_text !== undefined) addField('preview_text', dto.preview_text);
+    if (dto.preview_text !== undefined)
+      addField('preview_text', dto.preview_text);
     if (dto.html_body !== undefined) addField('html_body', dto.html_body);
     if (dto.from_name !== undefined) addField('from_name', dto.from_name);
     if (dto.from_email !== undefined) addField('from_email', dto.from_email);
     if (dto.reply_to !== undefined) addField('reply_to', dto.reply_to);
-    if (dto.audience_type !== undefined) addField('audience_type', dto.audience_type);
-    if (dto.audience_filters !== undefined) addField('audience_filters', JSON.stringify(dto.audience_filters));
+    if (dto.audience_type !== undefined)
+      addField('audience_type', dto.audience_type);
+    if (dto.audience_filters !== undefined)
+      addField('audience_filters', JSON.stringify(dto.audience_filters));
     if (dto.template_id !== undefined) addField('template_id', dto.template_id);
-    if (dto.scheduled_at !== undefined) addField('scheduled_at', dto.scheduled_at);
+    if (dto.scheduled_at !== undefined)
+      addField('scheduled_at', dto.scheduled_at);
     if (dto.status !== undefined) addField('status', dto.status);
 
     if (!fields.length) {
@@ -227,11 +234,18 @@ export class EmailMarketingService {
         break;
 
       case 'manual': {
-        const emails: string[] = Array.isArray(filters['emails']) ? (filters['emails'] as string[]) : [];
+        const emails: string[] = Array.isArray(filters['emails'])
+          ? (filters['emails'] as string[])
+          : [];
         return emails
           .map((e) => e.trim().toLowerCase())
           .filter((e) => e.includes('@'))
-          .map((email, i) => ({ email, name: null, type: 'lead' as const, id: `manual_${i}` }));
+          .map((email, i) => ({
+            email,
+            name: null,
+            type: 'lead' as const,
+            id: `manual_${i}`,
+          }));
       }
 
       default:
@@ -247,7 +261,10 @@ export class EmailMarketingService {
     );
   }
 
-  async createTemplate(dto: CreateTemplateDto, userId: string): Promise<unknown> {
+  async createTemplate(
+    dto: CreateTemplateDto,
+    userId: string,
+  ): Promise<unknown> {
     const rows = await this.dataSource.query(
       `INSERT INTO crm.email_templates (name, subject, preview_text, html_body, category, created_by)
        VALUES ($1,$2,$3,$4,$5,$6)
@@ -269,7 +286,8 @@ export class EmailMarketingService {
       `SELECT id FROM crm.email_templates WHERE id = $1 AND deleted_at IS NULL`,
       [id],
     );
-    if (!existing.length) throw new NotFoundException('Template não encontrado');
+    if (!existing.length)
+      throw new NotFoundException('Template não encontrado');
 
     const fields: string[] = [];
     const values: unknown[] = [];
@@ -282,7 +300,8 @@ export class EmailMarketingService {
 
     if (dto.name !== undefined) addField('name', dto.name);
     if (dto.subject !== undefined) addField('subject', dto.subject);
-    if (dto.preview_text !== undefined) addField('preview_text', dto.preview_text);
+    if (dto.preview_text !== undefined)
+      addField('preview_text', dto.preview_text);
     if (dto.html_body !== undefined) addField('html_body', dto.html_body);
     if (dto.category !== undefined) addField('category', dto.category);
 
@@ -303,7 +322,8 @@ export class EmailMarketingService {
       `SELECT id FROM crm.email_templates WHERE id = $1 AND deleted_at IS NULL`,
       [id],
     );
-    if (!existing.length) throw new NotFoundException('Template não encontrado');
+    if (!existing.length)
+      throw new NotFoundException('Template não encontrado');
     await this.dataSource.query(
       `UPDATE crm.email_templates SET deleted_at = NOW() WHERE id = $1`,
       [id],

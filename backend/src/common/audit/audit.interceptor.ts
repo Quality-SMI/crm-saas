@@ -23,7 +23,7 @@ const summarizeBody = (body: unknown): Record<string, unknown> | null => {
   if (!body || typeof body !== 'object') return null;
   const out: Record<string, unknown> = {};
   // Logamos apenas as keys (não os valores) — evita guardar PII/passwords no log
-  for (const k of Object.keys(body as Record<string, unknown>)) {
+  for (const k of Object.keys(body)) {
     if (/password|token|secret|api_?key/i.test(k)) {
       out[k] = '[redacted]';
     } else {
@@ -47,7 +47,9 @@ export class AuditInterceptor implements NestInterceptor {
     if (shouldSkip(req)) return next.handle();
 
     const started = Date.now();
-    const user = (req as any).user as { id?: string; email?: string } | undefined;
+    const user = (req as any).user as
+      | { id?: string; email?: string }
+      | undefined;
     const meta = { body_keys: summarizeBody(req.body) };
 
     const finalize = (statusCode: number) => {

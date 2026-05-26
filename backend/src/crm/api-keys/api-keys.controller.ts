@@ -1,6 +1,15 @@
 import {
-  Body, Controller, Delete, Get, HttpCode, HttpStatus,
-  Param, ParseUUIDPipe, Patch, Post, UseGuards,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
@@ -11,7 +20,12 @@ import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto, UpdateApiKeyDto } from './dto/api-key.dto';
 import { ResponseDto } from '../../common/dto/response.dto';
 
-const MANAGERS = [UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL];
+const MANAGERS = [
+  UserRole.SUPER_ADMIN,
+  UserRole.DIRECTOR,
+  UserRole.MANAGER,
+  UserRole.TECHNICAL,
+];
 
 @ApiTags('api-keys')
 @ApiBearerAuth()
@@ -33,7 +47,10 @@ export class ApiKeysController {
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Body() dto: CreateApiKeyDto,
   ) {
-    return new ResponseDto(await this.svc.create(clientId, dto), 'API Key criada');
+    return new ResponseDto(
+      await this.svc.create(clientId, dto),
+      'API Key criada',
+    );
   }
 
   @Patch(':id')

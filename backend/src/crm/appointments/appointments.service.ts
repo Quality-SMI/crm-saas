@@ -5,7 +5,10 @@ import { LeadAppointment } from './entities/appointment.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { QueryAppointmentsDto } from './dto/query-appointments.dto';
-import { PaginatedResponseDto, ResponseDto } from '../../common/dto/response.dto';
+import {
+  PaginatedResponseDto,
+  ResponseDto,
+} from '../../common/dto/response.dto';
 
 @Injectable()
 export class AppointmentsService {
@@ -14,20 +17,25 @@ export class AppointmentsService {
     private readonly repo: Repository<LeadAppointment>,
   ) {}
 
-  async create(dto: CreateAppointmentDto, userId: string): Promise<LeadAppointment> {
+  async create(
+    dto: CreateAppointmentDto,
+    userId: string,
+  ): Promise<LeadAppointment> {
     const appointment = this.repo.create({
-      lead_id:          dto.lead_id,
-      scheduled_at:     new Date(dto.scheduled_at),
-      assigned_to_id:   dto.assigned_to_id ?? null,
-      scheduled_by_id:  userId,
+      lead_id: dto.lead_id,
+      scheduled_at: new Date(dto.scheduled_at),
+      assigned_to_id: dto.assigned_to_id ?? null,
+      scheduled_by_id: userId,
       duration_minutes: dto.duration_minutes ?? 60,
-      notes:            dto.notes ?? null,
+      notes: dto.notes ?? null,
     });
     const saved = await this.repo.save(appointment);
     return this.findOne(saved.id);
   }
 
-  async findAll(query: QueryAppointmentsDto): Promise<PaginatedResponseDto<LeadAppointment>> {
+  async findAll(
+    query: QueryAppointmentsDto,
+  ): Promise<PaginatedResponseDto<LeadAppointment>> {
     const qb = this.repo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.lead', 'lead')
@@ -70,13 +78,19 @@ export class AppointmentsService {
     return a;
   }
 
-  async update(id: string, dto: UpdateAppointmentDto): Promise<LeadAppointment> {
+  async update(
+    id: string,
+    dto: UpdateAppointmentDto,
+  ): Promise<LeadAppointment> {
     await this.findOne(id);
     const fields: Partial<LeadAppointment> = {};
-    if (dto.scheduled_at !== undefined) fields.scheduled_at = new Date(dto.scheduled_at);
-    if (dto.assigned_to_id !== undefined) fields.assigned_to_id = dto.assigned_to_id;
+    if (dto.scheduled_at !== undefined)
+      fields.scheduled_at = new Date(dto.scheduled_at);
+    if (dto.assigned_to_id !== undefined)
+      fields.assigned_to_id = dto.assigned_to_id;
     if (dto.status !== undefined) fields.status = dto.status;
-    if (dto.duration_minutes !== undefined) fields.duration_minutes = dto.duration_minutes;
+    if (dto.duration_minutes !== undefined)
+      fields.duration_minutes = dto.duration_minutes;
     if (dto.notes !== undefined) fields.notes = dto.notes;
     await this.repo.update(id, fields);
     return this.findOne(id);

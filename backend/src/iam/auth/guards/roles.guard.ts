@@ -25,7 +25,10 @@ export class RolesGuard implements CanActivate {
     // Fallback: permissão explícita concedida via painel de usuários.
     // Se o controller declara @RequirePermission no nível da classe e o usuário
     // possui essa permissão no JWT, libera acesso mesmo sem o role exigido.
-    const classPerms = this.reflector.get<string[]>(PERMISSION_KEY, context.getClass());
+    const classPerms = this.reflector.get<string[]>(
+      PERMISSION_KEY,
+      context.getClass(),
+    );
     if (classPerms?.length) {
       const userPerms: string[] = user.permissions ?? [];
       return classPerms.every((p) => userPerms.includes(p));

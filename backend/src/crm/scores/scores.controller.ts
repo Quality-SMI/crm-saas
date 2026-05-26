@@ -7,7 +7,14 @@ import { RequirePermission } from '../../common/decorators/permission.decorator'
 import { Permission } from '../../iam/permissions/enums/permission.enum';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 
-const ALL_ROLES = [UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.SALES, UserRole.WRITER];
+const ALL_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.DIRECTOR,
+  UserRole.MANAGER,
+  UserRole.TECHNICAL,
+  UserRole.SALES,
+  UserRole.WRITER,
+];
 
 @RequirePermission(Permission.SCORES_ACCESS)
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,7 +41,12 @@ export class ScoresController {
   }
 
   @Post('clients/:clientId/recalculate')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.TECHNICAL,
+  )
   recalculate(@Param('clientId') clientId: string) {
     return this.svc.calculateScore(clientId);
   }

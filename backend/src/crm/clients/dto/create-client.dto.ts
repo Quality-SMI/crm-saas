@@ -167,7 +167,10 @@ export class CreateClientDto {
   @IsUUID()
   company_size_id?: string;
 
-  @ApiPropertyOptional({ type: [String], description: 'Array de tag IDs (UUID)' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Array de tag IDs (UUID)',
+  })
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
@@ -273,13 +276,18 @@ export class CreateClientDto {
   @MaxLength(2)
   state?: string;
 
-  @ApiPropertyOptional({ type: [String], description: 'Palavras-chave contratadas pelo cliente' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Palavras-chave contratadas pelo cliente',
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   contracted_keywords?: string[];
 
-  @ApiPropertyOptional({ description: 'URL do webhook para rebuild do site do cliente' })
+  @ApiPropertyOptional({
+    description: 'URL do webhook para rebuild do site do cliente',
+  })
   @IsOptional()
   @IsString()
   webhook_deploy?: string;

@@ -10,7 +10,10 @@ import { AiCompetitor } from './entities/ai-competitor.entity';
 import { AiCompetitorRanking } from './entities/ai-competitor-ranking.entity';
 import { CreateQueryDto, UpdateQueryDto } from './dto/create-query.dto';
 import { CreateMentionDto } from './dto/create-mention.dto';
-import { CreateCompetitorDto, UpdateCompetitorDto } from './dto/create-competitor.dto';
+import {
+  CreateCompetitorDto,
+  UpdateCompetitorDto,
+} from './dto/create-competitor.dto';
 import { CreateVisibilityScoreDto } from './dto/create-visibility-score.dto';
 
 @Injectable()
@@ -49,7 +52,9 @@ export class GeoService {
       this.mentionRepo.count({ where: { client_id: clientId } }),
       this.queryRepo.count({ where: { client_id: clientId, is_active: true } }),
       this.sourceRepo.count({ where: { client_id: clientId } }),
-      this.competitorRepo.count({ where: { client_id: clientId, is_active: true } }),
+      this.competitorRepo.count({
+        where: { client_id: clientId, is_active: true },
+      }),
     ]);
 
     const latestScore = await this.scoreRepo.findOne({
@@ -58,20 +63,29 @@ export class GeoService {
     });
 
     // Sentiment breakdown
-    const sentimentRaw = await this.dataSource.query<{ sentiment: string; cnt: string }[]>(`
+    const sentimentRaw = await this.dataSource.query<
+      { sentiment: string; cnt: string }[]
+    >(
+      `
       SELECT sentiment, COUNT(*) AS cnt
       FROM crm.ai_mentions
       WHERE client_id = $1 AND sentiment IS NOT NULL
       GROUP BY sentiment
-    `, [clientId]);
+    `,
+      [clientId],
+    );
 
     const sentiment = { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0 };
     sentimentRaw.forEach((r) => {
-      if (r.sentiment in sentiment) sentiment[r.sentiment as keyof typeof sentiment] = Number(r.cnt);
+      if (r.sentiment in sentiment)
+        sentiment[r.sentiment as keyof typeof sentiment] = Number(r.cnt);
     });
 
     // Platform breakdown (last 30 days)
-    const platformRaw = await this.dataSource.query<{ name: string; cnt: string }[]>(`
+    const platformRaw = await this.dataSource.query<
+      { name: string; cnt: string }[]
+    >(
+      `
       SELECT p.name, COUNT(*) AS cnt
       FROM crm.ai_mentions m
       JOIN crm.ai_platforms p ON p.id = m.platform_id
@@ -79,17 +93,24 @@ export class GeoService {
         AND m.created_at >= NOW() - INTERVAL '30 days'
       GROUP BY p.name
       ORDER BY cnt DESC
-    `, [clientId]);
+    `,
+      [clientId],
+    );
 
     return {
-      visibility_score: latestScore?.visibility_score ? Number(latestScore.visibility_score) : null,
+      visibility_score: latestScore?.visibility_score
+        ? Number(latestScore.visibility_score)
+        : null,
       geo_score: latestScore?.geo_score ? Number(latestScore.geo_score) : null,
       mention_count: mentionCount,
       active_queries: queries,
       source_count: sources,
       competitor_count: competitors,
       sentiment,
-      platforms: platformRaw.map((r) => ({ name: r.name, count: Number(r.cnt) })),
+      platforms: platformRaw.map((r) => ({
+        name: r.name,
+        count: Number(r.cnt),
+      })),
       last_updated: latestScore?.created_at ?? null,
     };
   }
@@ -103,20 +124,36 @@ export class GeoService {
     });
   }
 
-  async createQuery(clientId: string, dto: CreateQueryDto, userId: string): Promise<AiQuery> {
-    const entity = this.queryRepo.create({ ...dto, client_id: clientId, created_by: userId });
+  async createQuery(
+    clientId: string,
+    dto: CreateQueryDto,
+    userId: string,
+  ): Promise<AiQuery> {
+    const entity = this.queryRepo.create({
+      ...dto,
+      client_id: clientId,
+      created_by: userId,
+    });
     return this.queryRepo.save(entity);
   }
 
-  async updateQuery(clientId: string, queryId: string, dto: UpdateQueryDto): Promise<AiQuery> {
-    const q = await this.queryRepo.findOne({ where: { id: queryId, client_id: clientId } });
+  async updateQuery(
+    clientId: string,
+    queryId: string,
+    dto: UpdateQueryDto,
+  ): Promise<AiQuery> {
+    const q = await this.queryRepo.findOne({
+      where: { id: queryId, client_id: clientId },
+    });
     if (!q) throw new NotFoundException('Query não encontrada');
     await this.queryRepo.update(queryId, dto);
     return this.queryRepo.findOneOrFail({ where: { id: queryId } });
   }
 
   async deleteQuery(clientId: string, queryId: string): Promise<void> {
-    const q = await this.queryRepo.findOne({ where: { id: queryId, client_id: clientId } });
+    const q = await this.queryRepo.findOne({
+      where: { id: queryId, client_id: clientId },
+    });
     if (!q) throw new NotFoundException('Query não encontrada');
     await this.queryRepo.delete(queryId);
   }
@@ -125,7 +162,12 @@ export class GeoService {
 
   async listMentions(
     clientId: string,
-    opts: { platform_id?: string; sentiment?: string; limit?: number; offset?: number },
+    opts: {
+      platform_id?: string;
+      sentiment?: string;
+      limit?: number;
+      offset?: number;
+    },
   ) {
     const qb = this.mentionRepo
       .createQueryBuilder('m')
@@ -136,27 +178,39 @@ export class GeoService {
       .take(opts.limit ?? 50)
       .skip(opts.offset ?? 0);
 
-    if (opts.platform_id) qb.andWhere('m.platform_id = :pid', { pid: opts.platform_id });
+    if (opts.platform_id)
+      qb.andWhere('m.platform_id = :pid', { pid: opts.platform_id });
     if (opts.sentiment) qb.andWhere('m.sentiment = :s', { s: opts.sentiment });
 
     const [data, total] = await qb.getManyAndCount();
     return { data, total };
   }
 
-  async createMention(clientId: string, dto: CreateMentionDto, userId: string): Promise<AiMention> {
+  async createMention(
+    clientId: string,
+    dto: CreateMentionDto,
+    userId: string,
+  ): Promise<AiMention> {
     const entity = this.mentionRepo.create({
       ...dto,
       client_id: clientId,
       created_by: userId,
-      sentiment_score: dto.sentiment_score != null ? String(dto.sentiment_score) : null,
-      visibility_impact: dto.visibility_impact != null ? String(dto.visibility_impact) : null,
+      sentiment_score:
+        dto.sentiment_score != null ? String(dto.sentiment_score) : null,
+      visibility_impact:
+        dto.visibility_impact != null ? String(dto.visibility_impact) : null,
     });
     const saved = await this.mentionRepo.save(entity);
-    return this.mentionRepo.findOneOrFail({ where: { id: saved.id }, relations: { platform: true, query: true } });
+    return this.mentionRepo.findOneOrFail({
+      where: { id: saved.id },
+      relations: { platform: true, query: true },
+    });
   }
 
   async deleteMention(clientId: string, mentionId: string): Promise<void> {
-    const m = await this.mentionRepo.findOne({ where: { id: mentionId, client_id: clientId } });
+    const m = await this.mentionRepo.findOne({
+      where: { id: mentionId, client_id: clientId },
+    });
     if (!m) throw new NotFoundException('Menção não encontrada');
     await this.mentionRepo.delete(mentionId);
   }
@@ -175,16 +229,21 @@ export class GeoService {
     domain: string,
     citationDelta = 1,
   ): Promise<AiSource> {
-    await this.dataSource.query(`
+    await this.dataSource.query(
+      `
       INSERT INTO crm.ai_sources (client_id, domain, citation_count, last_seen_at)
       VALUES ($1, $2, $3, NOW())
       ON CONFLICT (client_id, domain)
       DO UPDATE SET
         citation_count = crm.ai_sources.citation_count + $3,
         last_seen_at   = NOW()
-    `, [clientId, domain, citationDelta]);
+    `,
+      [clientId, domain, citationDelta],
+    );
 
-    return this.sourceRepo.findOneOrFail({ where: { client_id: clientId, domain } });
+    return this.sourceRepo.findOneOrFail({
+      where: { client_id: clientId, domain },
+    });
   }
 
   // ─── Competitors ──────────────────────────────────────────────────────────
@@ -196,20 +255,31 @@ export class GeoService {
     });
   }
 
-  async createCompetitor(clientId: string, dto: CreateCompetitorDto): Promise<AiCompetitor> {
+  async createCompetitor(
+    clientId: string,
+    dto: CreateCompetitorDto,
+  ): Promise<AiCompetitor> {
     const entity = this.competitorRepo.create({ ...dto, client_id: clientId });
     return this.competitorRepo.save(entity);
   }
 
-  async updateCompetitor(clientId: string, cId: string, dto: UpdateCompetitorDto): Promise<AiCompetitor> {
-    const c = await this.competitorRepo.findOne({ where: { id: cId, client_id: clientId } });
+  async updateCompetitor(
+    clientId: string,
+    cId: string,
+    dto: UpdateCompetitorDto,
+  ): Promise<AiCompetitor> {
+    const c = await this.competitorRepo.findOne({
+      where: { id: cId, client_id: clientId },
+    });
     if (!c) throw new NotFoundException('Concorrente não encontrado');
     await this.competitorRepo.update(cId, dto);
     return this.competitorRepo.findOneOrFail({ where: { id: cId } });
   }
 
   async deleteCompetitor(clientId: string, cId: string): Promise<void> {
-    const c = await this.competitorRepo.findOne({ where: { id: cId, client_id: clientId } });
+    const c = await this.competitorRepo.findOne({
+      where: { id: cId, client_id: clientId },
+    });
     if (!c) throw new NotFoundException('Concorrente não encontrado');
     await this.competitorRepo.delete(cId);
   }
@@ -225,8 +295,12 @@ export class GeoService {
     });
   }
 
-  async upsertScore(clientId: string, dto: CreateVisibilityScoreDto): Promise<AiVisibilityScore> {
-    await this.dataSource.query(`
+  async upsertScore(
+    clientId: string,
+    dto: CreateVisibilityScoreDto,
+  ): Promise<AiVisibilityScore> {
+    await this.dataSource.query(
+      `
       INSERT INTO crm.ai_visibility_scores
         (client_id, platform_id, score_date, visibility_score, geo_score, mention_count, avg_ranking, avg_sentiment)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
@@ -236,16 +310,18 @@ export class GeoService {
         mention_count    = EXCLUDED.mention_count,
         avg_ranking      = EXCLUDED.avg_ranking,
         avg_sentiment    = EXCLUDED.avg_sentiment
-    `, [
-      clientId,
-      dto.platform_id ?? null,
-      dto.score_date,
-      dto.visibility_score ?? null,
-      dto.geo_score ?? null,
-      dto.mention_count ?? 0,
-      dto.avg_ranking ?? null,
-      dto.avg_sentiment ?? null,
-    ]);
+    `,
+      [
+        clientId,
+        dto.platform_id ?? null,
+        dto.score_date,
+        dto.visibility_score ?? null,
+        dto.geo_score ?? null,
+        dto.mention_count ?? 0,
+        dto.avg_ranking ?? null,
+        dto.avg_sentiment ?? null,
+      ],
+    );
 
     return this.scoreRepo.findOneOrFail({
       where: { client_id: clientId, score_date: dto.score_date },
@@ -253,12 +329,22 @@ export class GeoService {
   }
 
   async getTimeline(clientId: string, days = 90) {
-    return this.dataSource.query<Array<{ score_date: string; visibility_score: string; geo_score: string; mention_count: string }>>(`
+    return this.dataSource.query<
+      Array<{
+        score_date: string;
+        visibility_score: string;
+        geo_score: string;
+        mention_count: string;
+      }>
+    >(
+      `
       SELECT score_date, visibility_score, geo_score, mention_count
       FROM crm.ai_visibility_scores
       WHERE client_id = $1
       ORDER BY score_date ASC
       LIMIT $2
-    `, [clientId, days]);
+    `,
+      [clientId, days],
+    );
   }
 }

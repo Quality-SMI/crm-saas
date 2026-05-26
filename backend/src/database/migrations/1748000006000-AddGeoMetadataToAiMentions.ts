@@ -9,6 +9,8 @@ export class AddGeoMetadataToAiMentions1748000006000 implements MigrationInterfa
   }
 
   async down(runner: QueryRunner): Promise<void> {
-    await runner.query(`ALTER TABLE crm.ai_mentions DROP COLUMN IF EXISTS geo_metadata;`);
+    await runner.query(
+      `ALTER TABLE crm.ai_mentions DROP COLUMN IF EXISTS geo_metadata;`,
+    );
   }
 }

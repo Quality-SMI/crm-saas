@@ -72,7 +72,9 @@ export class LookupService {
 
   async findOrCreateTag(name: string): Promise<Tag> {
     const normalized = name.trim().toLowerCase();
-    let tag = await this.tagRepo.findOne({ where: { name: ILike(normalized) } });
+    let tag = await this.tagRepo.findOne({
+      where: { name: ILike(normalized) },
+    });
     if (!tag) {
       tag = await this.tagRepo.save(this.tagRepo.create({ name: normalized }));
     }

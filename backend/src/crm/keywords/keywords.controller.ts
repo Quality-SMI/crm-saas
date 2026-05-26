@@ -1,6 +1,15 @@
 import {
-  Body, Controller, Delete, Get, HttpCode, HttpStatus,
-  Param, ParseUUIDPipe, Patch, Post, UseGuards,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
@@ -10,12 +19,21 @@ import { RequirePermission } from '../../common/decorators/permission.decorator'
 import { Permission } from '../../iam/permissions/enums/permission.enum';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { KeywordsService } from './keywords.service';
-import { BulkCreateKeywordsDto, CreateKeywordCategoryDto, CreateKeywordDto, UpdateKeywordDto } from './dto/create-keyword.dto';
+import {
+  BulkCreateKeywordsDto,
+  CreateKeywordCategoryDto,
+  CreateKeywordDto,
+  UpdateKeywordDto,
+} from './dto/create-keyword.dto';
 import { ResponseDto } from '../../common/dto/response.dto';
 
 const ALL_ROLES = [
-  UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER,
-  UserRole.SALES, UserRole.TECHNICAL, UserRole.WRITER,
+  UserRole.SUPER_ADMIN,
+  UserRole.DIRECTOR,
+  UserRole.MANAGER,
+  UserRole.SALES,
+  UserRole.TECHNICAL,
+  UserRole.WRITER,
 ];
 
 @ApiTags('keywords')
@@ -39,7 +57,10 @@ export class KeywordsController {
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Body() dto: CreateKeywordDto,
   ) {
-    return new ResponseDto(await this.svc.create(clientId, dto), 'Palavra-chave criada');
+    return new ResponseDto(
+      await this.svc.create(clientId, dto),
+      'Palavra-chave criada',
+    );
   }
 
   @Post('clients/:clientId/bulk')
@@ -49,18 +70,29 @@ export class KeywordsController {
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Body() dto: BulkCreateKeywordsDto,
   ) {
-    return new ResponseDto(await this.svc.bulkCreate(clientId, dto), 'Palavras-chave criadas');
+    return new ResponseDto(
+      await this.svc.bulkCreate(clientId, dto),
+      'Palavras-chave criadas',
+    );
   }
 
   @Patch(':id')
   @Roles(...ALL_ROLES)
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateKeywordDto) {
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateKeywordDto,
+  ) {
     return new ResponseDto(await this.svc.update(id, dto));
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.SALES)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.SALES,
+  )
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.svc.remove(id);
   }
@@ -78,7 +110,10 @@ export class KeywordsController {
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Body() dto: CreateKeywordCategoryDto,
   ) {
-    return new ResponseDto(await this.svc.createCategory(clientId, dto), 'Categoria criada');
+    return new ResponseDto(
+      await this.svc.createCategory(clientId, dto),
+      'Categoria criada',
+    );
   }
 
   @Delete('categories/:id')

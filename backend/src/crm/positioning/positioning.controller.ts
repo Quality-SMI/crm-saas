@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../iam/auth/guards/roles.guard';
@@ -21,7 +29,15 @@ export class PositioningController {
   ) {}
 
   @Get('config/status')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.TECHNICAL,
+    UserRole.WRITER,
+    UserRole.SALES,
+    UserRole.FINANCIAL,
+  )
   async configStatus() {
     return this.service.getConfigStatus();
   }
@@ -47,7 +63,15 @@ export class PositioningController {
   }
 
   @Get(':clientId/snapshots')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.TECHNICAL,
+    UserRole.WRITER,
+    UserRole.SALES,
+    UserRole.FINANCIAL,
+  )
   async getSnapshots(
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Query('days') days?: string,
@@ -56,7 +80,15 @@ export class PositioningController {
   }
 
   @Get(':clientId/latest')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.TECHNICAL,
+    UserRole.WRITER,
+    UserRole.SALES,
+    UserRole.FINANCIAL,
+  )
   async getLatest(
     @Param('clientId', ParseUUIDPipe) clientId: string,
     @Query('days') days?: string,
@@ -74,13 +106,29 @@ export class PositioningController {
   // ─── Relatórios mensais ───────────────────────────────────────────────────
 
   @Get(':clientId/monthly-reports')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.TECHNICAL,
+    UserRole.WRITER,
+    UserRole.SALES,
+    UserRole.FINANCIAL,
+  )
   async listReports(@Param('clientId', ParseUUIDPipe) clientId: string) {
     return this.reportService.listReports(clientId);
   }
 
   @Get(':clientId/monthly-reports/latest')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES, UserRole.FINANCIAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.TECHNICAL,
+    UserRole.WRITER,
+    UserRole.SALES,
+    UserRole.FINANCIAL,
+  )
   async getLatestReport(@Param('clientId', ParseUUIDPipe) clientId: string) {
     return this.reportService.getLatestReport(clientId);
   }

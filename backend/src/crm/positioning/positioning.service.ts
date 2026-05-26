@@ -21,7 +21,9 @@ export class PositioningService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    const hasCredentials = this.config.get('GOOGLE_CLIENT_ID') && this.config.get('GOOGLE_REFRESH_TOKEN');
+    const hasCredentials =
+      this.config.get('GOOGLE_CLIENT_ID') &&
+      this.config.get('GOOGLE_REFRESH_TOKEN');
     if (!hasCredentials) return;
 
     // Roda discovery em background sem bloquear o startup do app
@@ -32,13 +34,17 @@ export class PositioningService implements OnModuleInit {
     try {
       const status = await this.getDiscoveryStatus();
       if (status.gscLinked === 0) {
-        this.logger.log('Rodando discovery automático de propriedades Google...');
+        this.logger.log(
+          'Rodando discovery automático de propriedades Google...',
+        );
         const result = await this.discoverAndMatchProperties().catch((e) => {
           this.logger.warn('Discovery falhou: ' + e.message);
           return null;
         });
         if (result) {
-          this.logger.log(`Discovery concluído: ${result.gscMatched} GSC, ${result.ga4Matched} GA4 vinculados`);
+          this.logger.log(
+            `Discovery concluído: ${result.gscMatched} GSC, ${result.ga4Matched} GA4 vinculados`,
+          );
           this.syncAllClients().catch(() => {});
         }
       }
@@ -50,11 +56,15 @@ export class PositioningService implements OnModuleInit {
   // Roda todo dia às 03:00
   @Cron('0 3 * * *')
   async scheduledSync() {
-    const hasCredentials = this.config.get('GOOGLE_CLIENT_ID') && this.config.get('GOOGLE_REFRESH_TOKEN');
+    const hasCredentials =
+      this.config.get('GOOGLE_CLIENT_ID') &&
+      this.config.get('GOOGLE_REFRESH_TOKEN');
     if (!hasCredentials) return;
     this.logger.log('Iniciando sync diário de posicionamento...');
     const result = await this.syncAllClients();
-    this.logger.log(`Sync diário concluído: ${result.synced} clientes sincronizados`);
+    this.logger.log(
+      `Sync diário concluído: ${result.synced} clientes sincronizados`,
+    );
   }
 
   private getAuth(): Auth.OAuth2Client {
@@ -102,7 +112,11 @@ export class PositioningService implements OnModuleInit {
     }));
 
     // Busca todas as propriedades GA4
-    const ga4Props: Array<{ propertyId: string; domain: string; displayName: string }> = [];
+    const ga4Props: Array<{
+      propertyId: string;
+      domain: string;
+      displayName: string;
+    }> = [];
     try {
       const summaries = await admin.accountSummaries.list({ pageSize: 200 });
       for (const account of summaries.data.accountSummaries ?? []) {
@@ -133,7 +147,9 @@ export class PositioningService implements OnModuleInit {
     }
 
     // Carrega todos os clientes
-    const clients = await this.clientRepo.find({ where: { deleted_at: null as any } });
+    const clients = await this.clientRepo.find({
+      where: { deleted_at: null as any },
+    });
 
     let gscMatched = 0;
     let ga4Matched = 0;
@@ -145,12 +161,14 @@ export class PositioningService implements OnModuleInit {
 
       // Match GSC
       const gscMatch = gscSites.find(
-        (s) => s.domain === clientDomain || s.domain.endsWith(`.${clientDomain}`),
+        (s) =>
+          s.domain === clientDomain || s.domain.endsWith(`.${clientDomain}`),
       );
 
       // Match GA4
       const ga4Match = ga4Props.find(
-        (p) => p.domain === clientDomain || p.domain.endsWith(`.${clientDomain}`),
+        (p) =>
+          p.domain === clientDomain || p.domain.endsWith(`.${clientDomain}`),
       );
 
       if (gscMatch || ga4Match) {
@@ -168,14 +186,20 @@ export class PositioningService implements OnModuleInit {
       }
     }
 
-    return { matched: Math.max(gscMatched, ga4Matched), gscMatched, ga4Matched, unmatched };
+    return {
+      matched: Math.max(gscMatched, ga4Matched),
+      gscMatched,
+      ga4Matched,
+      unmatched,
+    };
   }
 
   async syncClient(clientId: string): Promise<void> {
-    const client = await this.dataSource.query<any[]>(
-      `SELECT id, domain, gsc_site_url, ga4_property_id FROM crm.clients WHERE id = $1 AND deleted_at IS NULL`,
-      [clientId],
-    ).then((rows) => rows[0]);
+    const client = await this.dataSource
+      .query<
+        any[]
+      >(`SELECT id, domain, gsc_site_url, ga4_property_id FROM crm.clients WHERE id = $1 AND deleted_at IS NULL`, [clientId])
+      .then((rows) => rows[0]);
 
     if (!client?.domain) return;
 
@@ -185,12 +209,22 @@ export class PositioningService implements OnModuleInit {
 
     // Grava snapshots para 30, 60 e 90 dias para o filtro de período funcionar
     for (const periodDays of [30, 60, 90]) {
-      const startDate = new Date(today.getTime() - periodDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const gscData = await this.fetchSearchConsole(auth, client, startDate, endDate);
+      const startDate = new Date(
+        today.getTime() - periodDays * 24 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .split('T')[0];
+      const gscData = await this.fetchSearchConsole(
+        auth,
+        client,
+        startDate,
+        endDate,
+      );
       // GA4 só para 90 dias (evitar chamadas extras desnecessárias)
-      const gaData = periodDays === 90
-        ? await this.fetchAnalytics(auth, client, startDate, endDate)
-        : { sessions: 0, users: 0 };
+      const gaData =
+        periodDays === 90
+          ? await this.fetchAnalytics(auth, client, startDate, endDate)
+          : { sessions: 0, users: 0 };
       await this.upsertSnapshot(clientId, endDate, periodDays, gscData, gaData);
     }
   }
@@ -208,7 +242,9 @@ export class PositioningService implements OnModuleInit {
         await this.syncClient(client.id);
         synced++;
       } catch (err) {
-        this.logger.warn(`Failed to sync ${client.domain}: ${(err as Error).message}`);
+        this.logger.warn(
+          `Failed to sync ${client.domain}: ${(err as Error).message}`,
+        );
         failed++;
       }
     }
@@ -227,14 +263,37 @@ export class PositioningService implements OnModuleInit {
     // Usa o siteUrl descoberto; fallback para sc-domain e https://www.
     const candidates = client.gsc_site_url
       ? [client.gsc_site_url]
-      : [`sc-domain:${client.domain}`, `https://www.${client.domain}/`, `https://${client.domain}/`];
+      : [
+          `sc-domain:${client.domain}`,
+          `https://www.${client.domain}/`,
+          `https://${client.domain}/`,
+        ];
 
     for (const siteUrl of candidates) {
       try {
         const [summary, keywords, pages] = await Promise.all([
-          sc.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate, dimensions: [] } }),
-          sc.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate, dimensions: ['query'], rowLimit: 1000 } }),
-          sc.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate, dimensions: ['page'], rowLimit: 500 } }),
+          sc.searchanalytics.query({
+            siteUrl,
+            requestBody: { startDate, endDate, dimensions: [] },
+          }),
+          sc.searchanalytics.query({
+            siteUrl,
+            requestBody: {
+              startDate,
+              endDate,
+              dimensions: ['query'],
+              rowLimit: 1000,
+            },
+          }),
+          sc.searchanalytics.query({
+            siteUrl,
+            requestBody: {
+              startDate,
+              endDate,
+              dimensions: ['page'],
+              rowLimit: 500,
+            },
+          }),
         ]);
 
         const s = summary.data.rows?.[0];
@@ -262,7 +321,14 @@ export class PositioningService implements OnModuleInit {
       }
     }
 
-    return { total_clicks: 0, total_impressions: 0, avg_position: null, avg_ctr: null, keywords: [], pages: [] };
+    return {
+      total_clicks: 0,
+      total_impressions: 0,
+      avg_position: null,
+      avg_ctr: null,
+      keywords: [],
+      pages: [],
+    };
   }
 
   private async fetchAnalytics(
@@ -314,10 +380,17 @@ export class PositioningService implements OnModuleInit {
         total_clicks=$4, total_impressions=$5, avg_position=$6, avg_ctr=$7,
         keywords=$8, pages=$9, sessions=$10, users=$11, synced_at=NOW()`,
       [
-        clientId, date, periodDays,
-        gsc.total_clicks, gsc.total_impressions, gsc.avg_position, gsc.avg_ctr,
-        JSON.stringify(gsc.keywords), JSON.stringify(gsc.pages),
-        ga.sessions, ga.users,
+        clientId,
+        date,
+        periodDays,
+        gsc.total_clicks,
+        gsc.total_impressions,
+        gsc.avg_position,
+        gsc.avg_ctr,
+        JSON.stringify(gsc.keywords),
+        JSON.stringify(gsc.pages),
+        ga.sessions,
+        ga.users,
       ],
     );
   }
@@ -332,7 +405,10 @@ export class PositioningService implements OnModuleInit {
       .getMany();
   }
 
-  async getLatestSnapshot(clientId: string, days = 90): Promise<GscSnapshot | null> {
+  async getLatestSnapshot(
+    clientId: string,
+    days = 90,
+  ): Promise<GscSnapshot | null> {
     return this.snapshotRepo
       .createQueryBuilder('s')
       .where('s.client_id = :clientId', { clientId })
@@ -342,7 +418,12 @@ export class PositioningService implements OnModuleInit {
       .getOne();
   }
 
-  getConfigStatus(): { configured: boolean; hasClientId: boolean; hasSecret: boolean; hasRefreshToken: boolean } {
+  getConfigStatus(): {
+    configured: boolean;
+    hasClientId: boolean;
+    hasSecret: boolean;
+    hasRefreshToken: boolean;
+  } {
     const hasClientId = !!this.config.get('GOOGLE_CLIENT_ID');
     const hasSecret = !!this.config.get('GOOGLE_CLIENT_SECRET');
     const hasRefreshToken = !!this.config.get('GOOGLE_REFRESH_TOKEN');
@@ -354,7 +435,12 @@ export class PositioningService implements OnModuleInit {
     };
   }
 
-  async getDiscoveryStatus(): Promise<{ total: number; gscLinked: number; ga4Linked: number; unlinked: number }> {
+  async getDiscoveryStatus(): Promise<{
+    total: number;
+    gscLinked: number;
+    ga4Linked: number;
+    unlinked: number;
+  }> {
     const rows = await this.dataSource.query<any[]>(`
       SELECT
         COUNT(*) FILTER (WHERE deleted_at IS NULL) as total,

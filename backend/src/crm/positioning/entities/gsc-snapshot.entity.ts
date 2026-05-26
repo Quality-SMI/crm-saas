@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 import { Client } from '../../clients/entities/client.entity';
 
 @Entity({ name: 'gsc_snapshots', schema: 'crm' })
@@ -33,10 +41,21 @@ export class GscSnapshot {
   avg_ctr: number | null;
 
   @Column({ type: 'jsonb', default: [] })
-  keywords: Array<{ query: string; clicks: number; impressions: number; position: number; ctr: number }>;
+  keywords: Array<{
+    query: string;
+    clicks: number;
+    impressions: number;
+    position: number;
+    ctr: number;
+  }>;
 
   @Column({ type: 'jsonb', default: [] })
-  pages: Array<{ page: string; clicks: number; impressions: number; position: number }>;
+  pages: Array<{
+    page: string;
+    clicks: number;
+    impressions: number;
+    position: number;
+  }>;
 
   @Column({ type: 'int', default: 0 })
   sessions: number;

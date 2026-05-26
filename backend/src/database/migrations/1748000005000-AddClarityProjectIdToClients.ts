@@ -9,6 +9,8 @@ export class AddClarityProjectIdToClients1748000005000 implements MigrationInter
   }
 
   async down(runner: QueryRunner): Promise<void> {
-    await runner.query(`ALTER TABLE crm.clients DROP COLUMN IF EXISTS clarity_project_id;`);
+    await runner.query(
+      `ALTER TABLE crm.clients DROP COLUMN IF EXISTS clarity_project_id;`,
+    );
   }
 }

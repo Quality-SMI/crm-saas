@@ -1,6 +1,11 @@
 import {
-  Column, CreateDateColumn, DeleteDateColumn, Entity,
-  JoinColumn, ManyToOne, PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { KeywordCategory } from './keyword-category.entity';
 

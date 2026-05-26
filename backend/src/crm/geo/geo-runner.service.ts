@@ -11,7 +11,12 @@ import { Client } from '../clients/entities/client.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 // Slugs que usam Gemini com grounding web (simulação AI Overview)
-const GEMINI_GROUNDING_SLUGS = new Set(['gemini', 'ai_overview', 'ai-overview', 'aio']);
+const GEMINI_GROUNDING_SLUGS = new Set([
+  'gemini',
+  'ai_overview',
+  'ai-overview',
+  'aio',
+]);
 
 // Slugs que simulam plataformas com busca web real (OpenAI Responses API + web_search_preview)
 const WEB_SEARCH_SLUGS = new Set(['perplexity', 'copilot', 'bing', 'you']);
@@ -54,8 +59,10 @@ export class GeoRunnerService {
 
   constructor(
     @InjectRepository(AiQuery) private readonly queryRepo: Repository<AiQuery>,
-    @InjectRepository(AiPlatform) private readonly platformRepo: Repository<AiPlatform>,
-    @InjectRepository(AiMention) private readonly mentionRepo: Repository<AiMention>,
+    @InjectRepository(AiPlatform)
+    private readonly platformRepo: Repository<AiPlatform>,
+    @InjectRepository(AiMention)
+    private readonly mentionRepo: Repository<AiMention>,
     @InjectRepository(Client) private readonly clientRepo: Repository<Client>,
     private readonly dataSource: DataSource,
     private readonly notificationsService: NotificationsService,
@@ -67,7 +74,9 @@ export class GeoRunnerService {
       ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
       : null;
     if (!this.openai && !this.gemini) {
-      this.logger.warn('GeoRunnerService: OPENAI_API_KEY e GEMINI_API_KEY não configurados — runner de GEO desativado.');
+      this.logger.warn(
+        'GeoRunnerService: OPENAI_API_KEY e GEMINI_API_KEY não configurados — runner de GEO desativado.',
+      );
     }
   }
 
@@ -82,7 +91,11 @@ export class GeoRunnerService {
 
   // ─── Run all clients ───────────────────────────────────────────────────────
 
-  async runAll(): Promise<{ clients: number; mentions: number; errors: number }> {
+  async runAll(): Promise<{
+    clients: number;
+    mentions: number;
+    errors: number;
+  }> {
     const queries = await this.queryRepo.find({
       where: { is_active: true },
       relations: { client: true },
@@ -91,17 +104,26 @@ export class GeoRunnerService {
     const byClient = new Map<string, { client: Client; queries: AiQuery[] }>();
     for (const q of queries) {
       if (!q.client) continue;
-      if (!byClient.has(q.client_id)) byClient.set(q.client_id, { client: q.client, queries: [] });
+      if (!byClient.has(q.client_id))
+        byClient.set(q.client_id, { client: q.client, queries: [] });
       byClient.get(q.client_id)!.queries.push(q);
     }
 
-    let clients = 0, mentions = 0, errors = 0;
-    const citedClients: Array<{ id: string; name: string; mentions: number }> = [];
+    let clients = 0,
+      mentions = 0,
+      errors = 0;
+    const citedClients: Array<{ id: string; name: string; mentions: number }> =
+      [];
 
     for (const [, { client, queries: cqs }] of byClient) {
       try {
         const r = await this.runForClient(client, cqs);
-        if (r.mentions > 0) citedClients.push({ id: client.id, name: client.company_name, mentions: r.mentions });
+        if (r.mentions > 0)
+          citedClients.push({
+            id: client.id,
+            name: client.company_name,
+            mentions: r.mentions,
+          });
         mentions += r.mentions;
         clients++;
       } catch (e) {
@@ -112,12 +134,14 @@ export class GeoRunnerService {
     }
 
     if (citedClients.length > 0) {
-      await this.notificationsService.create(
-        'GEO_CITATIONS',
-        `${citedClients.length} cliente${citedClients.length > 1 ? 's' : ''} citado${citedClients.length > 1 ? 's' : ''} nas IAs`,
-        citedClients.map(c => c.name).join(', '),
-        { cited_clients: citedClients, total_mentions: mentions },
-      ).catch(() => {});
+      await this.notificationsService
+        .create(
+          'GEO_CITATIONS',
+          `${citedClients.length} cliente${citedClients.length > 1 ? 's' : ''} citado${citedClients.length > 1 ? 's' : ''} nas IAs`,
+          citedClients.map((c) => c.name).join(', '),
+          { cited_clients: citedClients, total_mentions: mentions },
+        )
+        .catch(() => {});
     }
 
     return { clients, mentions, errors };
@@ -125,23 +149,32 @@ export class GeoRunnerService {
 
   // ─── Run single client ─────────────────────────────────────────────────────
 
-  async runForClient(clientOrId: Client | string, queries?: AiQuery[]): Promise<{ mentions: number; errors: number }> {
-    const client = typeof clientOrId === 'string'
-      ? await this.clientRepo.findOneOrFail({ where: { id: clientOrId } })
-      : clientOrId;
+  async runForClient(
+    clientOrId: Client | string,
+    queries?: AiQuery[],
+  ): Promise<{ mentions: number; errors: number }> {
+    const client =
+      typeof clientOrId === 'string'
+        ? await this.clientRepo.findOneOrFail({ where: { id: clientOrId } })
+        : clientOrId;
 
     if (!queries) {
-      queries = await this.queryRepo.find({ where: { client_id: client.id, is_active: true } });
+      queries = await this.queryRepo.find({
+        where: { client_id: client.id, is_active: true },
+      });
     }
 
-    const platforms = await this.platformRepo.find({ where: { is_active: true } });
-    const platformMap = new Map(platforms.map(p => [p.slug, p]));
+    const platforms = await this.platformRepo.find({
+      where: { is_active: true },
+    });
+    const platformMap = new Map(platforms.map((p) => [p.slug, p]));
 
-    let mentions = 0, errors = 0;
+    let mentions = 0,
+      errors = 0;
 
     for (const q of queries) {
       const targetPlatforms = q.platform_ids?.length
-        ? platforms.filter(p => q.platform_ids.includes(p.id))
+        ? platforms.filter((p) => q.platform_ids.includes(p.id))
         : platforms; // sem filtro: roda em todas as plataformas ativas
 
       for (const platform of targetPlatforms) {
@@ -158,7 +191,9 @@ export class GeoRunnerService {
           const saved = await this.processQuery(client, q, platform);
           if (saved) mentions++;
         } catch (e) {
-          this.logger.error(`Query ${q.id} / ${platform.slug}: ${(e as Error).message}`);
+          this.logger.error(
+            `Query ${q.id} / ${platform.slug}: ${(e as Error).message}`,
+          );
           errors++;
         }
         await this.sleep(1500);
@@ -166,7 +201,9 @@ export class GeoRunnerService {
     }
 
     // Atualizar scores por plataforma
-    for (const platform of platforms.filter(p => ['chatgpt', 'gemini', 'ai_overview', 'ai-overview'].includes(p.slug))) {
+    for (const platform of platforms.filter((p) =>
+      ['chatgpt', 'gemini', 'ai_overview', 'ai-overview'].includes(p.slug),
+    )) {
       await this.refreshScore(client.id, platform.id).catch(() => {});
     }
 
@@ -175,13 +212,23 @@ export class GeoRunnerService {
 
   // ─── Processar query ───────────────────────────────────────────────────────
 
-  private async processQuery(client: Client, query: AiQuery, platform: AiPlatform): Promise<boolean> {
+  private async processQuery(
+    client: Client,
+    query: AiQuery,
+    platform: AiPlatform,
+  ): Promise<boolean> {
     let analysis: MentionAnalysis;
 
-    if (GEMINI_GROUNDING_SLUGS.has(platform.slug) && process.env.GEMINI_API_KEY) {
+    if (
+      GEMINI_GROUNDING_SLUGS.has(platform.slug) &&
+      process.env.GEMINI_API_KEY
+    ) {
       // Gemini com grounding — simula AI Overview do Google
       analysis = await this.analyzeWithGeminiGrounding(query.prompt, client);
-    } else if (WEB_SEARCH_SLUGS.has(platform.slug) && process.env.OPENAI_API_KEY) {
+    } else if (
+      WEB_SEARCH_SLUGS.has(platform.slug) &&
+      process.env.OPENAI_API_KEY
+    ) {
       // Perplexity, Copilot — usam busca web real via Responses API
       analysis = await this.analyzeWithOpenAIWebSearch(query.prompt, client);
     } else {
@@ -226,7 +273,10 @@ export class GeoRunnerService {
 
   // ─── Gemini com Google Search Grounding (AI Overview) ─────────────────────
 
-  private async analyzeWithGeminiGrounding(prompt: string, client: Client): Promise<MentionAnalysis> {
+  private async analyzeWithGeminiGrounding(
+    prompt: string,
+    client: Client,
+  ): Promise<MentionAnalysis> {
     if (!this.gemini) throw new Error('GEMINI_API_KEY não configurado');
     const model = this.gemini.getGenerativeModel({
       model: 'gemini-2.5-flash',
@@ -255,13 +305,24 @@ Retorne APENAS JSON válido com este formato (sem comentários, sem markdown):
 IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO invente menções.`;
 
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\nQuery: ${prompt}` }] }],
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `${systemInstruction}\n\nQuery: ${prompt}` }],
+        },
+      ],
     });
 
     const text = result.response.text();
-    const groundingMeta = (result.response as unknown as Record<string, unknown>).candidates as Array<{
-      groundingMetadata?: { groundingChunks?: Array<{ web?: { uri?: string } }> };
-    }> | undefined;
+    const groundingMeta = (
+      result.response as unknown as Record<string, unknown>
+    ).candidates as
+      | Array<{
+          groundingMetadata?: {
+            groundingChunks?: Array<{ web?: { uri?: string } }>;
+          };
+        }>
+      | undefined;
 
     // Extrair URLs do grounding metadata
     const groundingUrls: string[] = [];
@@ -288,10 +349,12 @@ IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO inv
     }
 
     // Combinar fontes do JSON + grounding metadata
-    const allSources = [...new Set([
-      ...(Array.isArray(parsed.fontes_citadas) ? parsed.fontes_citadas : []),
-      ...groundingUrls,
-    ])].filter(u => u.startsWith('http'));
+    const allSources = [
+      ...new Set([
+        ...(Array.isArray(parsed.fontes_citadas) ? parsed.fontes_citadas : []),
+        ...groundingUrls,
+      ]),
+    ].filter((u) => u.startsWith('http'));
 
     const geoMetadata: Record<string, unknown> = {
       query: parsed.query ?? prompt,
@@ -302,25 +365,36 @@ IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO inv
       topicos_recorrentes: parsed.topicos_recorrentes ?? [],
       oportunidades_geo: parsed.oportunidades_geo ?? [],
       padroes_semanticos: parsed.padroes_semanticos ?? [],
-      observacao: parsed.observacao ?? 'Resultado inferido via Gemini grounding/web search.',
+      observacao:
+        parsed.observacao ??
+        'Resultado inferido via Gemini grounding/web search.',
     };
 
     // Verificar menção no texto real — não confiar apenas no campo client_mentioned da IA
     const overviewText = (parsed.ai_overview_simulado ?? '').toLowerCase();
     const nameVariants = [
       client.company_name.toLowerCase(),
-      ...(client.domain ? [client.domain.replace(/^www\./, '').toLowerCase()] : []),
+      ...(client.domain
+        ? [client.domain.replace(/^www\./, '').toLowerCase()]
+        : []),
     ];
-    const textMentions = nameVariants.some(v => v.length > 3 && overviewText.includes(v));
+    const textMentions = nameVariants.some(
+      (v) => v.length > 3 && overviewText.includes(v),
+    );
     const isMentioned = textMentions || Boolean(parsed.client_mentioned);
 
     return {
       mentioned: isMentioned,
       mention_type: 'DIRECT',
-      sentiment: (['POSITIVE', 'NEUTRAL', 'NEGATIVE'].includes(parsed.sentiment) ? parsed.sentiment : 'NEUTRAL') as 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE',
+      sentiment: ['POSITIVE', 'NEUTRAL', 'NEGATIVE'].includes(parsed.sentiment)
+        ? parsed.sentiment
+        : 'NEUTRAL',
       sentiment_score: Number(parsed.sentiment_score ?? 0.5),
       ranking_position: parsed.ranking_position ?? null,
-      excerpt: parsed.excerpt ?? (isMentioned ? parsed.ai_overview_simulado?.slice(0, 500) : null) ?? null,
+      excerpt:
+        parsed.excerpt ??
+        (isMentioned ? parsed.ai_overview_simulado?.slice(0, 500) : null) ??
+        null,
       urls_cited: allSources,
       geo_metadata: geoMetadata,
     };
@@ -328,7 +402,10 @@ IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO inv
 
   // ─── OpenAI Responses API com web search (Perplexity / Copilot) ───────────
 
-  private async analyzeWithOpenAIWebSearch(prompt: string, client: Client): Promise<MentionAnalysis> {
+  private async analyzeWithOpenAIWebSearch(
+    prompt: string,
+    client: Client,
+  ): Promise<MentionAnalysis> {
     if (!this.openai) throw new Error('OPENAI_API_KEY não configurado');
 
     const response = await (this.openai as any).responses.create({
@@ -342,11 +419,11 @@ IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO inv
 
     // Extrair URLs das anotações (url_citation)
     const urls: string[] = [];
-    for (const item of (response.output ?? [])) {
+    for (const item of response.output ?? []) {
       if (item.type === 'message') {
-        for (const content of (item.content ?? [])) {
+        for (const content of item.content ?? []) {
           if (content.type === 'output_text') {
-            for (const annotation of (content.annotations ?? [])) {
+            for (const annotation of content.annotations ?? []) {
               if (annotation.type === 'url_citation' && annotation.url) {
                 urls.push(annotation.url);
               }
@@ -359,7 +436,9 @@ IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO inv
     const analysis = await this.analyzeResponseWithOpenAI(text, client);
     return {
       ...analysis,
-      urls_cited: [...new Set([...analysis.urls_cited, ...urls])].filter(u => u.startsWith('http')),
+      urls_cited: [...new Set([...analysis.urls_cited, ...urls])].filter((u) =>
+        u.startsWith('http'),
+      ),
     };
   }
 
@@ -376,7 +455,10 @@ IMPORTANTE: Responda com base apenas no que encontrar nas fontes reais. NÃO inv
     return resp.choices[0]?.message?.content ?? '';
   }
 
-  private async analyzeResponseWithOpenAI(response: string, client: Client): Promise<MentionAnalysis> {
+  private async analyzeResponseWithOpenAI(
+    response: string,
+    client: Client,
+  ): Promise<MentionAnalysis> {
     if (!this.openai) throw new Error('OPENAI_API_KEY não configurado');
     const resp = await this.openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -414,8 +496,20 @@ Retorne APENAS JSON com:
 
   // ─── Visibility score ──────────────────────────────────────────────────────
 
-  private async refreshScore(clientId: string, platformId: string): Promise<void> {
-    const [stats] = await this.dataSource.query<{ cnt: string; avg_rank: string; avg_sent: string; pos: string; neg: string }[]>(`
+  private async refreshScore(
+    clientId: string,
+    platformId: string,
+  ): Promise<void> {
+    const [stats] = await this.dataSource.query<
+      {
+        cnt: string;
+        avg_rank: string;
+        avg_sent: string;
+        pos: string;
+        neg: string;
+      }[]
+    >(
+      `
       SELECT COUNT(*) AS cnt,
         AVG(ranking_position) AS avg_rank,
         AVG(sentiment_score::numeric) AS avg_sent,
@@ -424,17 +518,23 @@ Retorne APENAS JSON com:
       FROM crm.ai_mentions
       WHERE client_id = $1 AND platform_id = $2
         AND checked_at >= NOW() - INTERVAL '30 days'
-    `, [clientId, platformId]);
+    `,
+      [clientId, platformId],
+    );
 
     const count = Number(stats?.cnt ?? 0);
     if (count === 0) return;
 
     const posRatio = Number(stats.pos) / count;
     const negRatio = Number(stats.neg) / count;
-    const visibilityScore = Math.min(100, (count / 10) * 50 + posRatio * 30 + (1 - negRatio) * 20);
+    const visibilityScore = Math.min(
+      100,
+      (count / 10) * 50 + posRatio * 30 + (1 - negRatio) * 20,
+    );
     const geoScore = Math.min(100, visibilityScore * 0.7 + posRatio * 30);
 
-    await this.dataSource.query(`
+    await this.dataSource.query(
+      `
       INSERT INTO crm.ai_visibility_scores
         (client_id, platform_id, score_date, visibility_score, geo_score, mention_count, avg_ranking, avg_sentiment)
       VALUES ($1,$2,CURRENT_DATE,$3,$4,$5,$6,$7)
@@ -444,8 +544,20 @@ Retorne APENAS JSON com:
         mention_count    = EXCLUDED.mention_count,
         avg_ranking      = EXCLUDED.avg_ranking,
         avg_sentiment    = EXCLUDED.avg_sentiment
-    `, [clientId, platformId, visibilityScore.toFixed(2), geoScore.toFixed(2), count, stats.avg_rank ?? null, stats.avg_sent ?? null]);
+    `,
+      [
+        clientId,
+        platformId,
+        visibilityScore.toFixed(2),
+        geoScore.toFixed(2),
+        count,
+        stats.avg_rank ?? null,
+        stats.avg_sent ?? null,
+      ],
+    );
   }
 
-  private sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)); }
+  private sleep(ms: number) {
+    return new Promise<void>((r) => setTimeout(r, ms));
+  }
 }

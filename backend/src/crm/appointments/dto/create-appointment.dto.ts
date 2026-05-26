@@ -1,12 +1,21 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class CreateAppointmentDto {
   @ApiProperty()
   @IsUUID()
   lead_id: string;
 
-  @ApiProperty({ description: 'ISO 8601 datetime ex: 2026-05-20T14:00:00-03:00' })
+  @ApiProperty({
+    description: 'ISO 8601 datetime ex: 2026-05-20T14:00:00-03:00',
+  })
   @IsDateString()
   scheduled_at: string;
 

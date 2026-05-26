@@ -13,6 +13,19 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { EmailMarketingModule } from './email-marketing/email-marketing.module';
 
 @Module({
-  imports: [ClientsModule, LookupModule, LeadsModule, AppointmentsModule, GeoModule, PositioningModule, KeywordsModule, ApiKeysModule, BlogModule, ScoresModule, NotificationsModule, EmailMarketingModule],
+  imports: [
+    ClientsModule,
+    LookupModule,
+    LeadsModule,
+    AppointmentsModule,
+    GeoModule,
+    PositioningModule,
+    KeywordsModule,
+    ApiKeysModule,
+    BlogModule,
+    ScoresModule,
+    NotificationsModule,
+    EmailMarketingModule,
+  ],
 })
 export class CrmModule {}

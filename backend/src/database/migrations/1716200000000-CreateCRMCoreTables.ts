@@ -153,8 +153,12 @@ export class CreateCRMCoreTables1716200000000 implements MigrationInterface {
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX idx_clients_status ON crm.clients(status)`);
-    await queryRunner.query(`CREATE INDEX idx_clients_domain ON crm.clients(domain)`);
+    await queryRunner.query(
+      `CREATE INDEX idx_clients_status ON crm.clients(status)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_clients_domain ON crm.clients(domain)`,
+    );
 
     // ── client sub-tables ─────────────────────────────────────────────────
     await queryRunner.query(`
@@ -224,7 +228,9 @@ export class CreateCRMCoreTables1716200000000 implements MigrationInterface {
         created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
-    await queryRunner.query(`CREATE INDEX idx_gsc_client_date ON crm.gsc_snapshots(client_id, date)`);
+    await queryRunner.query(
+      `CREATE INDEX idx_gsc_client_date ON crm.gsc_snapshots(client_id, date)`,
+    );
 
     // ── GEO / AI tables ───────────────────────────────────────────────────
     await queryRunner.query(`
@@ -259,7 +265,9 @@ export class CreateCRMCoreTables1716200000000 implements MigrationInterface {
         created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
-    await queryRunner.query(`CREATE INDEX idx_ai_mentions_client ON crm.ai_mentions(client_id, checked_at DESC)`);
+    await queryRunner.query(
+      `CREATE INDEX idx_ai_mentions_client ON crm.ai_mentions(client_id, checked_at DESC)`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE crm.ai_sources (
@@ -337,7 +345,9 @@ export class CreateCRMCoreTables1716200000000 implements MigrationInterface {
         deleted_at  TIMESTAMPTZ
       )
     `);
-    await queryRunner.query(`CREATE INDEX idx_keywords_client ON crm.client_keywords(client_id) WHERE deleted_at IS NULL`);
+    await queryRunner.query(
+      `CREATE INDEX idx_keywords_client ON crm.client_keywords(client_id) WHERE deleted_at IS NULL`,
+    );
 
     // ── Leads ─────────────────────────────────────────────────────────────
     await queryRunner.query(`
@@ -363,7 +373,9 @@ export class CreateCRMCoreTables1716200000000 implements MigrationInterface {
         deleted_at      TIMESTAMPTZ
       )
     `);
-    await queryRunner.query(`CREATE INDEX idx_leads_stage ON crm.leads(stage) WHERE deleted_at IS NULL`);
+    await queryRunner.query(
+      `CREATE INDEX idx_leads_stage ON crm.leads(stage) WHERE deleted_at IS NULL`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE crm.lead_interactions (
@@ -441,13 +453,23 @@ export class CreateCRMCoreTables1716200000000 implements MigrationInterface {
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE IF EXISTS crm.lead_appointments CASCADE`);
-    await queryRunner.query(`DROP TABLE IF EXISTS crm.lead_interactions CASCADE`);
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS crm.lead_appointments CASCADE`,
+    );
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS crm.lead_interactions CASCADE`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS crm.leads CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS crm.client_keywords CASCADE`);
-    await queryRunner.query(`DROP TABLE IF EXISTS crm.keyword_categories CASCADE`);
-    await queryRunner.query(`DROP TABLE IF EXISTS crm.ai_visibility_scores CASCADE`);
-    await queryRunner.query(`DROP TABLE IF EXISTS crm.ai_competitor_rankings CASCADE`);
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS crm.keyword_categories CASCADE`,
+    );
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS crm.ai_visibility_scores CASCADE`,
+    );
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS crm.ai_competitor_rankings CASCADE`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS crm.ai_competitors CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS crm.ai_sources CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS crm.ai_mentions CASCADE`);
@@ -464,7 +486,9 @@ export class CreateCRMCoreTables1716200000000 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE IF EXISTS crm.business_models CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS crm.market_segments CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS crm.hosting_types CASCADE`);
-    await queryRunner.query(`DROP TABLE IF EXISTS crm.service_subtypes CASCADE`);
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS crm.service_subtypes CASCADE`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS crm.service_types CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS crm.segments CASCADE`);
     await queryRunner.query(`DROP TYPE IF EXISTS crm.appointment_status`);

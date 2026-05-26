@@ -60,7 +60,10 @@ export class LeadsController {
 
   @Get(':id')
   @Roles(...ALL_INTERNAL)
-  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     const data = await this.leadsService.findOne(id, user);
     return new ResponseDto(data);
   }
@@ -73,10 +76,7 @@ export class LeadsController {
     UserRole.MANAGER,
     UserRole.SALES,
   )
-  async create(
-    @Body() dto: CreateLeadDto,
-    @CurrentUser() user: any,
-  ) {
+  async create(@Body() dto: CreateLeadDto, @CurrentUser() user: any) {
     const data = await this.leadsService.create(dto, user.id);
     return new ResponseDto(data, 'Lead criado com sucesso');
   }

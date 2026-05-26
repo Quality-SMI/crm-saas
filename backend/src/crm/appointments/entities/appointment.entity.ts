@@ -40,7 +40,11 @@ export class LeadAppointment {
   @JoinColumn({ name: 'assigned_to_id' })
   assigned_to: User | null;
 
-  @Column({ type: 'enum', enum: AppointmentStatus, default: AppointmentStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: AppointmentStatus,
+    default: AppointmentStatus.PENDING,
+  })
   status: AppointmentStatus;
 
   @Column({ type: 'text', nullable: true })

@@ -16,8 +16,12 @@ export class CreateClientApiKeys1748000001000 implements MigrationInterface {
         CONSTRAINT uq_client_api_key UNIQUE (key)
       )
     `);
-    await queryRunner.query(`CREATE INDEX idx_client_api_keys_client ON crm.client_api_keys(client_id)`);
-    await queryRunner.query(`CREATE INDEX idx_client_api_keys_key ON crm.client_api_keys(key) WHERE deleted_at IS NULL`);
+    await queryRunner.query(
+      `CREATE INDEX idx_client_api_keys_client ON crm.client_api_keys(client_id)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_client_api_keys_key ON crm.client_api_keys(key) WHERE deleted_at IS NULL`,
+    );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

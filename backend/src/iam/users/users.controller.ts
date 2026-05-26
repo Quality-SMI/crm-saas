@@ -68,7 +68,12 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
     @CurrentUser() requester: User,
   ) {
-    const data = await this.usersService.update(id, dto, requester.id, requester.role);
+    const data = await this.usersService.update(
+      id,
+      dto,
+      requester.id,
+      requester.role,
+    );
     return new ResponseDto(data, 'Usuário atualizado com sucesso');
   }
 
@@ -96,7 +101,10 @@ export class UsersController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR)
   async getPermissions(@Param('id', ParseUUIDPipe) id: string) {
     const user = await this.usersService.findOne(id);
-    const data = await this.permissionsService.getUserPermissionsResponse(id, user.role);
+    const data = await this.permissionsService.getUserPermissionsResponse(
+      id,
+      user.role,
+    );
     return new ResponseDto(data);
   }
 
@@ -108,10 +116,19 @@ export class UsersController {
     @CurrentUser() requester: User,
   ) {
     const user = await this.usersService.findOne(id);
-    if (user.role === UserRole.SUPER_ADMIN && requester.role !== UserRole.SUPER_ADMIN) {
-      throw new ForbiddenException('Não é possível editar permissões de Super Admin');
+    if (
+      user.role === UserRole.SUPER_ADMIN &&
+      requester.role !== UserRole.SUPER_ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Não é possível editar permissões de Super Admin',
+      );
     }
-    await this.permissionsService.setUserPermissions(id, user.role, dto.permissions);
+    await this.permissionsService.setUserPermissions(
+      id,
+      user.role,
+      dto.permissions,
+    );
     return new ResponseDto(null, 'Permissões atualizadas com sucesso');
   }
 }

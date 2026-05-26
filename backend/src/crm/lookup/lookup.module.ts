@@ -12,10 +12,18 @@ import { LookupController } from './lookup.controller';
 import { LookupService } from './lookup.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([
-    Segment, ServiceType, ServiceSubtype, HostingType,
-    MarketSegment, BusinessModel, CompanySize, Tag,
-  ])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Segment,
+      ServiceType,
+      ServiceSubtype,
+      HostingType,
+      MarketSegment,
+      BusinessModel,
+      CompanySize,
+      Tag,
+    ]),
+  ],
   controllers: [LookupController],
   providers: [LookupService],
   exports: [LookupService],

@@ -30,11 +30,15 @@ function verifyResendSignature(
 
   // Rejeita timestamps fora de ±5 minutos (previne replay attacks)
   const ts = parseInt(timestamp, 10);
-  if (isNaN(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > 300) return false;
+  if (isNaN(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > 300)
+    return false;
 
   const toSign = `${msgId}.${timestamp}.${rawBody.toString('utf8')}`;
   const secretBytes = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
-  const expected = crypto.createHmac('sha256', secretBytes).update(toSign).digest('base64');
+  const expected = crypto
+    .createHmac('sha256', secretBytes)
+    .update(toSign)
+    .digest('base64');
 
   // Signature pode ter múltiplos valores separados por espaço: "v1,<sig1> v1,<sig2>"
   return signature.split(' ').some((s) => {
@@ -73,12 +77,23 @@ export class EmailMarketingWebhookController {
 
     if (secret) {
       const rawBody = req.rawBody;
-      if (!rawBody || !verifyResendSignature(rawBody, svixId, svixTimestamp, svixSignature, secret)) {
+      if (
+        !rawBody ||
+        !verifyResendSignature(
+          rawBody,
+          svixId,
+          svixTimestamp,
+          svixSignature,
+          secret,
+        )
+      ) {
         this.logger.warn('WEBHOOK_RESEND_INVALID_SIGNATURE');
         throw new UnauthorizedException('Assinatura de webhook inválida');
       }
     } else {
-      this.logger.warn('RESEND_WEBHOOK_SECRET não configurado — verificação de assinatura desativada');
+      this.logger.warn(
+        'RESEND_WEBHOOK_SECRET não configurado — verificação de assinatura desativada',
+      );
     }
 
     this.emailSendingService.processWebhook(payload).catch((err: Error) => {
@@ -108,7 +123,9 @@ export class EmailMarketingWebhookController {
         throw new UnauthorizedException('Segredo de webhook inválido');
       }
     } else {
-      this.logger.warn('WEBHOOK_UNSUBSCRIBE_SECRET não configurado — endpoint desprotegido');
+      this.logger.warn(
+        'WEBHOOK_UNSUBSCRIBE_SECRET não configurado — endpoint desprotegido',
+      );
     }
 
     if (body?.email) {

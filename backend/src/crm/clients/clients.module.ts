@@ -11,7 +11,17 @@ import { ClientsController } from './clients.controller';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Client, ClientEmail, ClientPhone, ClientTag, ClientService, Tag]), ApiKeysModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Client,
+      ClientEmail,
+      ClientPhone,
+      ClientTag,
+      ClientService,
+      Tag,
+    ]),
+    ApiKeysModule,
+  ],
   controllers: [ClientsController],
   providers: [ClientsService],
   exports: [ClientsService],

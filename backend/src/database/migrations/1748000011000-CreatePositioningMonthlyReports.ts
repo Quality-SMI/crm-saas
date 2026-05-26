@@ -27,7 +27,9 @@ export class CreatePositioningMonthlyReports1748000011000 implements MigrationIn
       );
     `);
 
-    await qr.query(`CREATE INDEX IF NOT EXISTS idx_pmr_client_id ON crm.positioning_monthly_reports (client_id);`);
+    await qr.query(
+      `CREATE INDEX IF NOT EXISTS idx_pmr_client_id ON crm.positioning_monthly_reports (client_id);`,
+    );
   }
 
   async down(qr: QueryRunner): Promise<void> {

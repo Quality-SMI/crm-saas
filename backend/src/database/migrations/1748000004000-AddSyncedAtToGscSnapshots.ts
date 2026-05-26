@@ -9,6 +9,8 @@ export class AddSyncedAtToGscSnapshots1748000004000 implements MigrationInterfac
   }
 
   async down(runner: QueryRunner): Promise<void> {
-    await runner.query(`ALTER TABLE crm.gsc_snapshots DROP COLUMN IF EXISTS synced_at;`);
+    await runner.query(
+      `ALTER TABLE crm.gsc_snapshots DROP COLUMN IF EXISTS synced_at;`,
+    );
   }
 }

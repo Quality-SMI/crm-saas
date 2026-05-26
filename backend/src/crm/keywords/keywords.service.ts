@@ -3,7 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { ClientKeyword } from './entities/client-keyword.entity';
 import { KeywordCategory } from './entities/keyword-category.entity';
-import { BulkCreateKeywordsDto, CreateKeywordCategoryDto, CreateKeywordDto, UpdateKeywordDto } from './dto/create-keyword.dto';
+import {
+  BulkCreateKeywordsDto,
+  CreateKeywordCategoryDto,
+  CreateKeywordDto,
+  UpdateKeywordDto,
+} from './dto/create-keyword.dto';
 
 @Injectable()
 export class KeywordsService {
@@ -22,13 +27,19 @@ export class KeywordsService {
     });
   }
 
-  async create(clientId: string, dto: CreateKeywordDto): Promise<ClientKeyword> {
+  async create(
+    clientId: string,
+    dto: CreateKeywordDto,
+  ): Promise<ClientKeyword> {
     const slug = dto.slug ?? this.generateSlug(dto.keyword);
     const kw = this.kwRepo.create({ ...dto, slug, client_id: clientId });
     return this.kwRepo.save(kw);
   }
 
-  async bulkCreate(clientId: string, dto: BulkCreateKeywordsDto): Promise<ClientKeyword[]> {
+  async bulkCreate(
+    clientId: string,
+    dto: BulkCreateKeywordsDto,
+  ): Promise<ClientKeyword[]> {
     const entries = dto.keywords
       .map((k) => k.trim())
       .filter(Boolean)
@@ -44,14 +55,18 @@ export class KeywordsService {
   }
 
   async update(id: string, dto: UpdateKeywordDto): Promise<ClientKeyword> {
-    const kw = await this.kwRepo.findOne({ where: { id, deleted_at: IsNull() } });
+    const kw = await this.kwRepo.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!kw) throw new NotFoundException('Palavra-chave não encontrada');
     Object.assign(kw, dto);
     return this.kwRepo.save(kw);
   }
 
   async remove(id: string): Promise<void> {
-    const kw = await this.kwRepo.findOne({ where: { id, deleted_at: IsNull() } });
+    const kw = await this.kwRepo.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!kw) throw new NotFoundException('Palavra-chave não encontrada');
     await this.kwRepo.softDelete(id);
   }
@@ -63,7 +78,10 @@ export class KeywordsService {
     });
   }
 
-  async createCategory(clientId: string, dto: CreateKeywordCategoryDto): Promise<KeywordCategory> {
+  async createCategory(
+    clientId: string,
+    dto: CreateKeywordCategoryDto,
+  ): Promise<KeywordCategory> {
     const cat = this.catRepo.create({ ...dto, client_id: clientId });
     return this.catRepo.save(cat);
   }

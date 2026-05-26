@@ -9,8 +9,13 @@ import { LookupService } from './lookup.service';
 // Dados de referência (segmentos, tipos de serviço etc.) — disponíveis para todos os
 // usuários internos autenticados; CLIENT_PORTAL não tem acesso ao backoffice.
 const ALL_INTERNAL = [
-  UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER,
-  UserRole.FINANCIAL, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES,
+  UserRole.SUPER_ADMIN,
+  UserRole.DIRECTOR,
+  UserRole.MANAGER,
+  UserRole.FINANCIAL,
+  UserRole.TECHNICAL,
+  UserRole.WRITER,
+  UserRole.SALES,
 ];
 
 @ApiTags('lookup')

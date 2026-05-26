@@ -140,7 +140,10 @@ export class EmailMarketingController {
         filters = {};
       }
     }
-    const audience = await this.emailMarketingService.previewAudience(audienceType, filters);
+    const audience = await this.emailMarketingService.previewAudience(
+      audienceType,
+      filters,
+    );
     return new ResponseDto(audience);
   }
 
@@ -194,6 +197,8 @@ export class EmailMarketingController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(...MARKETING_ROLES)
   async removeUnsubscribe(@Param('email') email: string) {
-    await this.emailMarketingService.removeUnsubscribe(decodeURIComponent(email));
+    await this.emailMarketingService.removeUnsubscribe(
+      decodeURIComponent(email),
+    );
   }
 }

@@ -86,7 +86,10 @@ export class ClientsController {
     UserRole.WRITER,
     UserRole.SALES,
   )
-  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
     const data = await this.clientsService.findOne(id, user);
     return new ResponseDto(data);
   }
@@ -99,10 +102,7 @@ export class ClientsController {
     UserRole.MANAGER,
     UserRole.SALES,
   )
-  async create(
-    @Body() dto: CreateClientDto,
-    @CurrentUser() user: any,
-  ) {
+  async create(@Body() dto: CreateClientDto, @CurrentUser() user: any) {
     const data = await this.clientsService.create(dto, user.id);
     return new ResponseDto(data, 'Cliente criado com sucesso');
   }

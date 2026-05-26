@@ -19,12 +19,15 @@ import { PaginatedResponseDto } from '../../common/dto/response.dto';
 import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { ApiKeysService } from '../api-keys/api-keys.service';
 
-interface RequestUser { id: string; role: UserRole }
+interface RequestUser {
+  id: string;
+  role: UserRole;
+}
 
 const PLAN_IDS = {
-  SILVER:    'e9978d91-ec42-44e5-9afa-7a298d872c25',
-  GOLD:      '6f4144d8-55b4-486b-a7c9-c4c1a0974010',
-  DIAMOND:   'f3934adb-2208-46d9-803d-eff4dddad95b',
+  SILVER: 'e9978d91-ec42-44e5-9afa-7a298d872c25',
+  GOLD: '6f4144d8-55b4-486b-a7c9-c4c1a0974010',
+  DIAMOND: 'f3934adb-2208-46d9-803d-eff4dddad95b',
   PARCEIROS: '39d3e744-88bb-4c99-8144-4b3c040c99ee',
 } as const;
 
@@ -33,7 +36,8 @@ function resolvePlan(
   requestedPlanId: string | null | undefined,
   currentPlanId: string | null | undefined,
 ): string | undefined {
-  const effectivePlan = requestedPlanId !== undefined ? requestedPlanId : currentPlanId;
+  const effectivePlan =
+    requestedPlanId !== undefined ? requestedPlanId : currentPlanId;
   if (effectivePlan === PLAN_IDS.PARCEIROS) return undefined;
   if (monthly_value == null) return undefined;
   const v = Number(monthly_value);
@@ -61,7 +65,10 @@ export class ClientsService {
     private readonly apiKeysSvc: ApiKeysService,
   ) {}
 
-  async findAll(query: QueryClientsDto, user?: RequestUser): Promise<PaginatedResponseDto<Client>> {
+  async findAll(
+    query: QueryClientsDto,
+    user?: RequestUser,
+  ): Promise<PaginatedResponseDto<Client>> {
     const qb = this.clientRepo
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.segment', 'segment')
@@ -95,7 +102,9 @@ export class ClientsService {
     }
 
     if (query.segment_id) {
-      qb.andWhere('c.segment_id = :segment_id', { segment_id: query.segment_id });
+      qb.andWhere('c.segment_id = :segment_id', {
+        segment_id: query.segment_id,
+      });
     }
 
     if (query.service_type_id) {
@@ -152,8 +161,13 @@ export class ClientsService {
         throw new BadRequestException('Já existe um cliente com este domínio');
       }
 
-      const { emails, phones, monthly_value, tag_ids, services, ...fields } = dto;
-      const autoPlan = resolvePlan(monthly_value, fields.company_size_id, undefined);
+      const { emails, phones, monthly_value, tag_ids, services, ...fields } =
+        dto;
+      const autoPlan = resolvePlan(
+        monthly_value,
+        fields.company_size_id,
+        undefined,
+      );
       const client = manager.create(Client, {
         ...fields,
         ...(autoPlan && { company_size_id: autoPlan }),
@@ -169,19 +183,25 @@ export class ClientsService {
 
       if (emails?.length) {
         await manager.save(
-          emails.map((e) => manager.create(ClientEmail, { ...e, client_id: saved.id })),
+          emails.map((e) =>
+            manager.create(ClientEmail, { ...e, client_id: saved.id }),
+          ),
         );
       }
 
       if (phones?.length) {
         await manager.save(
-          phones.map((p) => manager.create(ClientPhone, { ...p, client_id: saved.id })),
+          phones.map((p) =>
+            manager.create(ClientPhone, { ...p, client_id: saved.id }),
+          ),
         );
       }
 
       if (tag_ids?.length) {
         await manager.save(
-          tag_ids.map((tid) => manager.create(ClientTag, { client_id: saved.id, tag_id: tid })),
+          tag_ids.map((tid) =>
+            manager.create(ClientTag, { client_id: saved.id, tag_id: tid }),
+          ),
         );
       }
 
@@ -191,10 +211,14 @@ export class ClientsService {
             manager.create(ClientService, {
               ...s,
               client_id: saved.id,
-              management_fee: s.management_fee != null ? String(s.management_fee) : null,
-              media_budget: s.media_budget != null ? String(s.media_budget) : null,
-              monthly_value: s.monthly_value != null ? String(s.monthly_value) : null,
-              one_time_value: s.one_time_value != null ? String(s.one_time_value) : null,
+              management_fee:
+                s.management_fee != null ? String(s.management_fee) : null,
+              media_budget:
+                s.media_budget != null ? String(s.media_budget) : null,
+              monthly_value:
+                s.monthly_value != null ? String(s.monthly_value) : null,
+              one_time_value:
+                s.one_time_value != null ? String(s.one_time_value) : null,
             }),
           ),
         );
@@ -214,9 +238,10 @@ export class ClientsService {
     return this.dataSource.transaction(async (manager) => {
       const { emails, phones, monthly_value, tag_ids, services, ...rest } = dto;
       // Auto-compute plan only when monthly_value is changing and no plan is explicitly sent
-      const autoPlan = monthly_value !== undefined && rest.company_size_id === undefined
-        ? resolvePlan(monthly_value, undefined, client.company_size_id)
-        : undefined;
+      const autoPlan =
+        monthly_value !== undefined && rest.company_size_id === undefined
+          ? resolvePlan(monthly_value, undefined, client.company_size_id)
+          : undefined;
       const fields = {
         ...rest,
         ...(autoPlan && { company_size_id: autoPlan }),
@@ -262,10 +287,14 @@ export class ClientsService {
             manager.create(ClientService, {
               ...s,
               client_id: id,
-              management_fee: s.management_fee != null ? String(s.management_fee) : null,
-              media_budget: s.media_budget != null ? String(s.media_budget) : null,
-              monthly_value: s.monthly_value != null ? String(s.monthly_value) : null,
-              one_time_value: s.one_time_value != null ? String(s.one_time_value) : null,
+              management_fee:
+                s.management_fee != null ? String(s.management_fee) : null,
+              media_budget:
+                s.media_budget != null ? String(s.media_budget) : null,
+              monthly_value:
+                s.monthly_value != null ? String(s.monthly_value) : null,
+              one_time_value:
+                s.one_time_value != null ? String(s.one_time_value) : null,
             }),
           );
           await manager.save(newSvcs);
@@ -282,20 +311,21 @@ export class ClientsService {
     mrr: number;
     newClientsThisMonth: number;
   }> {
-    const [activeClients, openLeads, mrr, newClientsThisMonth] = await Promise.all([
-      this.dataSource.query<[{ count: string }]>(
-        `SELECT COUNT(*) FROM crm.clients WHERE deleted_at IS NULL AND status IN ('ACTIVE','PAYING','RENEWED')`,
-      ),
-      this.dataSource.query<[{ count: string }]>(
-        `SELECT COUNT(*) FROM crm.leads WHERE deleted_at IS NULL AND stage NOT IN ('WON','LOST')`,
-      ),
-      this.dataSource.query<[{ sum: string }]>(
-        `SELECT COALESCE(SUM(monthly_value::numeric),0) AS sum FROM crm.clients WHERE deleted_at IS NULL AND status IN ('ACTIVE','PAYING','RENEWED')`,
-      ),
-      this.dataSource.query<[{ count: string }]>(
-        `SELECT COUNT(*) FROM crm.clients WHERE deleted_at IS NULL AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW())`,
-      ),
-    ]);
+    const [activeClients, openLeads, mrr, newClientsThisMonth] =
+      await Promise.all([
+        this.dataSource.query<[{ count: string }]>(
+          `SELECT COUNT(*) FROM crm.clients WHERE deleted_at IS NULL AND status IN ('ACTIVE','PAYING','RENEWED')`,
+        ),
+        this.dataSource.query<[{ count: string }]>(
+          `SELECT COUNT(*) FROM crm.leads WHERE deleted_at IS NULL AND stage NOT IN ('WON','LOST')`,
+        ),
+        this.dataSource.query<[{ sum: string }]>(
+          `SELECT COALESCE(SUM(monthly_value::numeric),0) AS sum FROM crm.clients WHERE deleted_at IS NULL AND status IN ('ACTIVE','PAYING','RENEWED')`,
+        ),
+        this.dataSource.query<[{ count: string }]>(
+          `SELECT COUNT(*) FROM crm.clients WHERE deleted_at IS NULL AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW())`,
+        ),
+      ]);
 
     return {
       activeClients: Number(activeClients[0].count),
@@ -305,7 +335,9 @@ export class ClientsService {
     };
   }
 
-  async countByPlan(): Promise<{ company_size_id: string | null; count: number }[]> {
+  async countByPlan(): Promise<
+    { company_size_id: string | null; count: number }[]
+  > {
     const rows = await this.clientRepo
       .createQueryBuilder('c')
       .select('c.company_size_id', 'company_size_id')
@@ -314,7 +346,10 @@ export class ClientsService {
       .groupBy('c.company_size_id')
       .getRawMany<{ company_size_id: string | null; count: string }>();
 
-    return rows.map((r) => ({ company_size_id: r.company_size_id, count: Number(r.count) }));
+    return rows.map((r) => ({
+      company_size_id: r.company_size_id,
+      count: Number(r.count),
+    }));
   }
 
   async updateKeywords(id: string, keywords: string[]): Promise<void> {

@@ -14,7 +14,9 @@ export class CreateUserPermissionsAndFixAiSources1748000012000 implements Migrat
       );
     `);
 
-    await qr.query(`CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON iam.user_permissions (user_id);`);
+    await qr.query(
+      `CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON iam.user_permissions (user_id);`,
+    );
 
     // Adiciona UNIQUE constraint faltante em ai_sources para o ON CONFLICT funcionar
     await qr.query(`
@@ -33,6 +35,8 @@ export class CreateUserPermissionsAndFixAiSources1748000012000 implements Migrat
 
   async down(qr: QueryRunner): Promise<void> {
     await qr.query(`DROP TABLE IF EXISTS iam.user_permissions;`);
-    await qr.query(`ALTER TABLE crm.ai_sources DROP CONSTRAINT IF EXISTS uq_ai_sources_client_domain;`);
+    await qr.query(
+      `ALTER TABLE crm.ai_sources DROP CONSTRAINT IF EXISTS uq_ai_sources_client_domain;`,
+    );
   }
 }

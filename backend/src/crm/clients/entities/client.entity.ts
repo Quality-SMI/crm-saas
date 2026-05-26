@@ -98,7 +98,12 @@ export class Client {
   @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
   monthly_value: string | null;
 
-  @Column({ type: 'enum', enum: BillingType, default: BillingType.MONTHLY, nullable: true })
+  @Column({
+    type: 'enum',
+    enum: BillingType,
+    default: BillingType.MONTHLY,
+    nullable: true,
+  })
   billing_type: BillingType | null;
 
   @Column({ type: 'date', nullable: true })

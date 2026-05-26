@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
 import {
   ArrowLeft, Send, Save, Clock, Users,
   Bold, Italic, List, ListOrdered, Link as LinkIcon,
-  Minus, FlaskConical, PenLine, Sparkles,
+  Minus, FlaskConical, PenLine, Sparkles, ImageIcon, X,
 } from 'lucide-react';
 import {
   emailMarketingApi,
@@ -156,7 +157,7 @@ function CampaignEditor({
   const [subject, setSubject] = useState(initialTemplate?.subject ?? '');
   const [previewText, setPreviewText] = useState(initialTemplate?.preview_text ?? '');
   const [fromName, setFromName] = useState('Quality SMI — Sistema de Marketing para Internet');
-  const [fromEmail, setFromEmail] = useState('noreply@qualitysmi.com.br');
+  const [fromEmail, setFromEmail] = useState('noreply@marketing.qualitysmi.com.br');
   const [replyTo, setReplyTo] = useState('');
   const [audienceType, setAudienceType] = useState<AudienceType>('all_clients');
   const [audiencePreview, setAudiencePreview] = useState<AudiencePreview[] | null>(null);
@@ -175,12 +176,18 @@ function CampaignEditor({
   const [limitEnabled, setLimitEnabled] = useState(false);
   const [sendLimit, setSendLimit] = useState(1000);
   const [sendOffset, setSendOffset] = useState(0);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imgUrl, setImgUrl] = useState('');
+  const [imgAlt, setImgAlt] = useState('');
+  const [imgLink, setImgLink] = useState('');
+  const imgFileRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder: 'Escreva o conteúdo do email...' }),
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-blue-600 underline' } }),
+      Image.configure({ HTMLAttributes: { class: 'max-w-full h-auto rounded my-2', style: 'max-width:100%' } }),
     ],
     editorProps: {
       attributes: { class: 'prose prose-sm max-w-none min-h-[360px] px-4 py-3 focus:outline-none' },
@@ -244,6 +251,32 @@ function CampaignEditor({
     const t = setTimeout(() => loadAudience('manual', manualEmails), 600);
     return () => clearTimeout(t);
   }, [manualEmails, audienceType, loadAudience]);
+
+  const insertImage = () => {
+    if (!imgUrl.trim() || !editor) return;
+    if (imgLink.trim()) {
+      editor.chain().focus().insertContent(
+        `<a href="${imgLink.trim()}" target="_blank" rel="noopener noreferrer"><img src="${imgUrl.trim()}" alt="${imgAlt.trim()}" style="max-width:100%;height:auto;" /></a>`
+      ).run();
+    } else {
+      editor.chain().focus().setImage({ src: imgUrl.trim(), alt: imgAlt.trim() || undefined }).run();
+    }
+    setImgUrl(''); setImgAlt(''); setImgLink(''); setShowImageModal(false);
+  };
+
+  const insertImageByFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        editor.chain().focus().setImage({ src: reader.result }).run();
+      }
+      setShowImageModal(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const getHtml = () => editor?.getHTML() ?? '';
 
@@ -445,9 +478,74 @@ function CampaignEditor({
               <TBtn onClick={() => editor?.chain().focus().setHorizontalRule().run()} title="Linha horizontal">
                 <Minus size={14} />
               </TBtn>
+              <div className="w-px h-4 bg-gray-200 mx-1" />
+              <TBtn onClick={() => setShowImageModal(true)} title="Inserir imagem">
+                <ImageIcon size={14} />
+              </TBtn>
             </div>
             <EditorContent editor={editor} />
           </div>
+
+          {/* Image modal */}
+          {showImageModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowImageModal(false)}>
+              <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Inserir imagem</h3>
+                  <button type="button" onClick={() => setShowImageModal(false)} className="text-gray-400 hover:text-gray-700"><X size={16} /></button>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-500 font-medium">URL da imagem <span className="text-red-400">*</span></label>
+                    <input
+                      value={imgUrl}
+                      onChange={(e) => setImgUrl(e.target.value)}
+                      placeholder="https://exemplo.com/imagem.jpg"
+                      className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 font-medium">Texto alternativo (alt)</label>
+                    <input
+                      value={imgAlt}
+                      onChange={(e) => setImgAlt(e.target.value)}
+                      placeholder="Descrição da imagem"
+                      className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 font-medium">Link ao clicar <span className="text-gray-400">(opcional)</span></label>
+                    <input
+                      value={imgLink}
+                      onChange={(e) => setImgLink(e.target.value)}
+                      placeholder="https://seusite.com.br"
+                      className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Se preenchido, a imagem vira um link clicável no email.</p>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={insertImage}
+                      disabled={!imgUrl.trim()}
+                      className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg"
+                    >
+                      Inserir por URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => imgFileRef.current?.click()}
+                      className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-sm text-gray-700 rounded-lg"
+                    >
+                      Upload
+                    </button>
+                  </div>
+                  <input ref={imgFileRef} type="file" accept="image/*" hidden onChange={insertImageByFile} />
+                  <p className="text-xs text-gray-400 text-center">Upload converte para base64. Use URL para emails (imagens hospedadas carregam melhor).</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right — Settings */}

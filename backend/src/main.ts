@@ -8,7 +8,10 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   // rawBody: true preserva buffer bruto para verificação de assinatura de webhooks
-  const app = await NestFactory.create(AppModule, { bodyParser: true, rawBody: true });
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+    rawBody: true,
+  });
 
   // Atrás de NGINX — confia em X-Forwarded-* (req.ip vira o IP real do cliente)
   const httpAdapter = app.getHttpAdapter().getInstance();

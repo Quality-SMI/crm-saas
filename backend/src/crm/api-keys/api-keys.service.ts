@@ -21,7 +21,11 @@ export class ApiKeysService {
 
   async create(clientId: string, dto: CreateApiKeyDto): Promise<ClientApiKey> {
     const key = `qsmi_${crypto.randomBytes(32).toString('hex')}`;
-    const apiKey = this.repo.create({ client_id: clientId, name: dto.name, key });
+    const apiKey = this.repo.create({
+      client_id: clientId,
+      name: dto.name,
+      key,
+    });
     return this.repo.save(apiKey);
   }
 

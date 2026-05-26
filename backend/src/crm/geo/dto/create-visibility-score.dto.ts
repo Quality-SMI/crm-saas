@@ -1,6 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsDateString, IsNumber, IsOptional, IsUUID, Max, Min,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
 } from 'class-validator';
 
 export class CreateVisibilityScoreDto {

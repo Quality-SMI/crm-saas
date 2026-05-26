@@ -94,15 +94,33 @@ export class CreateIAMSchema1716134400000 implements MigrationInterface {
     `);
 
     // Indexes
-    await queryRunner.query(`CREATE INDEX idx_users_email ON iam.users (email)`);
-    await queryRunner.query(`CREATE INDEX idx_users_role ON iam.users (role) WHERE deleted_at IS NULL`);
-    await queryRunner.query(`CREATE INDEX idx_users_client_id ON iam.users (client_id) WHERE client_id IS NOT NULL`);
-    await queryRunner.query(`CREATE INDEX idx_sessions_user_id ON iam.sessions (user_id)`);
-    await queryRunner.query(`CREATE INDEX idx_sessions_token_hash ON iam.sessions (refresh_token_hash)`);
-    await queryRunner.query(`CREATE INDEX idx_sessions_active ON iam.sessions (user_id, is_active) WHERE is_active = true`);
-    await queryRunner.query(`CREATE INDEX idx_audit_user ON iam.audit_logs (user_id, created_at DESC)`);
-    await queryRunner.query(`CREATE INDEX idx_audit_action ON iam.audit_logs (action, created_at DESC)`);
-    await queryRunner.query(`CREATE INDEX idx_login_attempts_email ON iam.login_attempts (email, created_at DESC)`);
+    await queryRunner.query(
+      `CREATE INDEX idx_users_email ON iam.users (email)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_users_role ON iam.users (role) WHERE deleted_at IS NULL`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_users_client_id ON iam.users (client_id) WHERE client_id IS NOT NULL`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_sessions_user_id ON iam.sessions (user_id)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_sessions_token_hash ON iam.sessions (refresh_token_hash)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_sessions_active ON iam.sessions (user_id, is_active) WHERE is_active = true`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_audit_user ON iam.audit_logs (user_id, created_at DESC)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_audit_action ON iam.audit_logs (action, created_at DESC)`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX idx_login_attempts_email ON iam.login_attempts (email, created_at DESC)`,
+    );
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

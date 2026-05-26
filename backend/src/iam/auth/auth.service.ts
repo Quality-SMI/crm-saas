@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -41,8 +37,15 @@ export class AuthService {
     const user = await this.userRepo.findOne({
       where: { email: dto.email.toLowerCase() },
       select: {
-        id: true, email: true, name: true, role: true, password_hash: true,
-        is_active: true, failed_login_attempts: true, locked_until: true, client_id: true,
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        password_hash: true,
+        is_active: true,
+        failed_login_attempts: true,
+        locked_until: true,
+        client_id: true,
       },
     });
 
@@ -50,7 +53,9 @@ export class AuthService {
     // mensagem de erro diferente quando a conta está bloqueada
     if (user?.isLocked) {
       await bcrypt.compare(dto.password, DUMMY_HASH); // trabalho constante para manter timing
-      throw new UnauthorizedException('Conta temporariamente bloqueada. Tente novamente mais tarde.');
+      throw new UnauthorizedException(
+        'Conta temporariamente bloqueada. Tente novamente mais tarde.',
+      );
     }
 
     // Always compare to prevent timing attacks
@@ -65,12 +70,25 @@ export class AuthService {
 
     await this.resetFailedAttempts(user);
 
-    const perms = await this.permissionsService.getEffectivePermissions(user.id, user.role);
-    const { accessToken, refreshToken } = await this.createSession(user, ip, userAgent, null, perms);
+    const perms = await this.permissionsService.getEffectivePermissions(
+      user.id,
+      user.role,
+    );
+    const { accessToken, refreshToken } = await this.createSession(
+      user,
+      ip,
+      userAgent,
+      null,
+      perms,
+    );
 
     this.logger.log(`AUTH_LOGIN_SUCCESS user=${user.id} ip=${ip}`);
 
-    return { accessToken, refreshToken, user: { ...this.sanitizeUser(user), permissions: perms } };
+    return {
+      accessToken,
+      refreshToken,
+      user: { ...this.sanitizeUser(user), permissions: perms },
+    };
   }
 
   async refresh(refreshToken: string, ip: string, userAgent: string) {
@@ -84,7 +102,9 @@ export class AuthService {
       // Possible token reuse — revoke entire family
       if (session) {
         await this.revokeFamilySessions(session.token_family);
-        this.logger.warn(`REFRESH_TOKEN_REUSE_DETECTED family=${session.token_family}`);
+        this.logger.warn(
+          `REFRESH_TOKEN_REUSE_DETECTED family=${session.token_family}`,
+        );
       }
       throw new UnauthorizedException('Sessão inválida');
     }
@@ -96,9 +116,18 @@ export class AuthService {
 
     // Rotate: revoke old session, create new one
     await this.revokeSession(session, 'rotated');
-    const perms = await this.permissionsService.getEffectivePermissions(session.user.id, session.user.role);
+    const perms = await this.permissionsService.getEffectivePermissions(
+      session.user.id,
+      session.user.role,
+    );
     const { accessToken, refreshToken: newRefreshToken } =
-      await this.createSession(session.user, ip, userAgent, session.token_family, perms);
+      await this.createSession(
+        session.user,
+        ip,
+        userAgent,
+        session.token_family,
+        perms,
+      );
 
     return { accessToken, refreshToken: newRefreshToken };
   }
@@ -121,7 +150,9 @@ export class AuthService {
 
     // Resposta sempre neutra — não vaza existência do email
     if (!user) {
-      this.logger.log(`PASSWORD_RESET_REQUEST_UNKNOWN email=${normalized} ip=${ip}`);
+      this.logger.log(
+        `PASSWORD_RESET_REQUEST_UNKNOWN email=${normalized} ip=${ip}`,
+      );
       return;
     }
 
@@ -155,11 +186,15 @@ export class AuthService {
 
   async resetPassword(rawToken: string, newPassword: string, ip: string) {
     const tokenHash = this.hashToken(rawToken);
-    const record = await this.resetRepo.findOne({ where: { token_hash: tokenHash } });
+    const record = await this.resetRepo.findOne({
+      where: { token_hash: tokenHash },
+    });
 
     if (!record || record.used_at || record.expires_at < new Date()) {
       this.logger.warn(`PASSWORD_RESET_INVALID_TOKEN ip=${ip}`);
-      throw new UnauthorizedException('Link de recuperação inválido ou expirado');
+      throw new UnauthorizedException(
+        'Link de recuperação inválido ou expirado',
+      );
     }
 
     const user = await this.userRepo.findOne({
@@ -181,7 +216,11 @@ export class AuthService {
     // Revoga TODAS as sessões ativas — força re-login em todos dispositivos
     await this.sessionRepo.update(
       { user_id: user.id, is_active: true },
-      { is_active: false, revoked_at: new Date(), revoke_reason: 'password_reset' },
+      {
+        is_active: false,
+        revoked_at: new Date(),
+        revoke_reason: 'password_reset',
+      },
     );
 
     this.logger.log(`PASSWORD_RESET_SUCCESS user=${user.id} ip=${ip}`);
@@ -190,10 +229,19 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.userRepo.findOne({
       where: { id: userId, is_active: true },
-      select: { id: true, email: true, name: true, role: true, client_id: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        client_id: true,
+      },
     });
     if (!user) throw new UnauthorizedException('Usuário não encontrado');
-    const permissions = await this.permissionsService.getEffectivePermissions(userId, user.role);
+    const permissions = await this.permissionsService.getEffectivePermissions(
+      userId,
+      user.role,
+    );
     return { ...this.sanitizeUser(user), permissions };
   }
 
@@ -254,7 +302,11 @@ export class AuthService {
     if (!family) return;
     await this.sessionRepo.update(
       { token_family: family, is_active: true },
-      { is_active: false, revoked_at: new Date(), revoke_reason: 'reuse_detected' },
+      {
+        is_active: false,
+        revoked_at: new Date(),
+        revoke_reason: 'reuse_detected',
+      },
     );
   }
 

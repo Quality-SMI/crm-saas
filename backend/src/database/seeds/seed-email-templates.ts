@@ -16,7 +16,8 @@ const templates = [
   {
     name: 'Newsletter Mensal',
     subject: '📰 Novidades de [Mês] — Fique por dentro',
-    preview_text: 'Confira as principais novidades e dicas do mês para o seu negócio.',
+    preview_text:
+      'Confira as principais novidades e dicas do mês para o seu negócio.',
     category: 'newsletter',
     html_body: `<h1>Novidades do Mês</h1>
 <p>Olá! Chegou mais uma edição da nossa newsletter com as principais atualizações, tendências e dicas para impulsionar o seu negócio no mundo digital.</p>
@@ -45,8 +46,10 @@ const templates = [
 
   {
     name: 'Apresentação de Serviços',
-    subject: 'Como a Quality SMI pode transformar a presença digital do seu negócio',
-    preview_text: 'Conheça nossas soluções em SEO, marketing de conteúdo e visibilidade digital.',
+    subject:
+      'Como a Quality SMI pode transformar a presença digital do seu negócio',
+    preview_text:
+      'Conheça nossas soluções em SEO, marketing de conteúdo e visibilidade digital.',
     category: 'apresentacao',
     html_body: `<h1>Transforme a presença digital do seu negócio</h1>
 <p>Olá! Somos a <strong>Quality SMI</strong>, especialistas em marketing digital com foco em resultados mensuráveis. Gostaríamos de apresentar como podemos ajudar o seu negócio a crescer de forma sustentável na internet.</p>
@@ -80,7 +83,8 @@ const templates = [
   {
     name: 'Boas-vindas ao Cliente',
     subject: 'Bem-vindo à Quality SMI — próximos passos',
-    preview_text: 'Estamos muito felizes em ter você como cliente. Veja o que acontece agora.',
+    preview_text:
+      'Estamos muito felizes em ter você como cliente. Veja o que acontece agora.',
     category: 'transacional',
     html_body: `<h1>Bem-vindo à Quality SMI! 🎉</h1>
 <p>Ficamos muito felizes em ter você como cliente. A partir de agora, nossa equipe está totalmente dedicada ao crescimento da presença digital do seu negócio.</p>
@@ -105,7 +109,8 @@ const templates = [
   {
     name: 'Reengajamento de Leads',
     subject: 'Ainda pensa em crescer no digital? Temos algo para você',
-    preview_text: 'Conversamos um tempo atrás — gostaríamos de retomar o contato com uma proposta especial.',
+    preview_text:
+      'Conversamos um tempo atrás — gostaríamos de retomar o contato com uma proposta especial.',
     category: 'reengajamento',
     html_body: `<h1>Ainda está buscando crescer no digital?</h1>
 <p>Olá! Lembro que conversamos há algum tempo sobre as possibilidades de marketing digital para o seu negócio. Entendemos que o momento pode não ter sido o ideal, mas gostaríamos de retomar o contato.</p>
@@ -132,7 +137,8 @@ const templates = [
   {
     name: 'Relatório de Resultados',
     subject: '📊 Relatório de Performance — [Mês/Ano]',
-    preview_text: 'Confira os resultados alcançados este mês e o que planejamos para o próximo período.',
+    preview_text:
+      'Confira os resultados alcançados este mês e o que planejamos para o próximo período.',
     category: 'relatorio',
     html_body: `<h1>Relatório de Performance — [Mês/Ano]</h1>
 <p>Olá! Chegou o momento de compartilhar os resultados do mês e o planejamento para o próximo período. Como sempre, nosso compromisso é com a transparência total.</p>
@@ -170,7 +176,8 @@ const templates = [
   {
     name: 'Promoção / Oferta Especial',
     subject: '⚡ Oferta especial por tempo limitado — não perca!',
-    preview_text: 'Preparamos uma condição exclusiva para você iniciar sua jornada no marketing digital.',
+    preview_text:
+      'Preparamos uma condição exclusiva para você iniciar sua jornada no marketing digital.',
     category: 'promocao',
     html_body: `<h1>Oferta especial por tempo limitado ⚡</h1>
 <p>Preparamos uma condição exclusiva para você dar o próximo passo no marketing digital do seu negócio. Essa oportunidade é válida somente até o final deste mês.</p>
@@ -225,7 +232,9 @@ async function seedEmailTemplates() {
     inserted++;
   }
 
-  console.log(`\n✅ Concluído! ${inserted} templates inseridos, ${skipped} já existiam.`);
+  console.log(
+    `\n✅ Concluído! ${inserted} templates inseridos, ${skipped} já existiam.`,
+  );
   await dataSource.destroy();
 }
 

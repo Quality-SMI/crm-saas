@@ -120,10 +120,7 @@ export class BlogService {
     const { tag_ids: _tagIds, ...rest } = dto;
     Object.assign(article, rest);
 
-    if (
-      article.status === ArticleStatus.PUBLISHED &&
-      !article.date_published
-    ) {
+    if (article.status === ArticleStatus.PUBLISHED && !article.date_published) {
       article.date_published = new Date();
     }
 
@@ -164,13 +161,18 @@ export class BlogService {
     });
   }
 
-  async createAuthor(clientId: string, dto: CreateAuthorDto): Promise<BlogAuthor> {
+  async createAuthor(
+    clientId: string,
+    dto: CreateAuthorDto,
+  ): Promise<BlogAuthor> {
     const author = this.authorRepo.create({ ...dto, client_id: clientId });
     return this.authorRepo.save(author);
   }
 
   async removeAuthor(id: string): Promise<void> {
-    const author = await this.authorRepo.findOne({ where: { id, deleted_at: IsNull() } });
+    const author = await this.authorRepo.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!author) throw new NotFoundException('Autor não encontrado');
     await this.authorRepo.softDelete(id);
   }
@@ -184,7 +186,10 @@ export class BlogService {
     });
   }
 
-  async createCategory(clientId: string, dto: CreateCategoryDto): Promise<BlogCategory> {
+  async createCategory(
+    clientId: string,
+    dto: CreateCategoryDto,
+  ): Promise<BlogCategory> {
     const category = this.categoryRepo.create({ ...dto, client_id: clientId });
     return this.categoryRepo.save(category);
   }
@@ -217,19 +222,37 @@ export class BlogService {
 
   findPublishedArticles(clientId: string): Promise<BlogArticle[]> {
     return this.articleRepo.find({
-      where: { client_id: clientId, status: ArticleStatus.PUBLISHED, deleted_at: IsNull() },
+      where: {
+        client_id: clientId,
+        status: ArticleStatus.PUBLISHED,
+        deleted_at: IsNull(),
+      },
       select: {
-        id: true, client_id: true, title: true, slug: true,
-        description: true, image: true, date_published: true, created_at: true,
+        id: true,
+        client_id: true,
+        title: true,
+        slug: true,
+        description: true,
+        image: true,
+        date_published: true,
+        created_at: true,
       },
       relations: { author: true, category: true, tags: true },
       order: { date_published: 'DESC' },
     });
   }
 
-  findPublishedArticleBySlug(clientId: string, slug: string): Promise<BlogArticle | null> {
+  findPublishedArticleBySlug(
+    clientId: string,
+    slug: string,
+  ): Promise<BlogArticle | null> {
     return this.articleRepo.findOne({
-      where: { client_id: clientId, slug, status: ArticleStatus.PUBLISHED, deleted_at: IsNull() },
+      where: {
+        client_id: clientId,
+        slug,
+        status: ArticleStatus.PUBLISHED,
+        deleted_at: IsNull(),
+      },
       relations: { author: true, category: true, tags: true },
     });
   }

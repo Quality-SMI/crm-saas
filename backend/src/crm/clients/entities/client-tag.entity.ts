@@ -1,4 +1,10 @@
-import { Entity, ManyToOne, PrimaryGeneratedColumn, JoinColumn, Column } from 'typeorm';
+import {
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  JoinColumn,
+  Column,
+} from 'typeorm';
 import { Client } from './client.entity';
 import { Tag } from '../../lookup/entities/tag.entity';
 

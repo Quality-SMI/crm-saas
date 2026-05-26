@@ -1,6 +1,16 @@
 import {
-  Body, Controller, Delete, Get, HttpCode, HttpStatus,
-  Param, ParseUUIDPipe, Post, Put, Query, UseGuards,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../iam/auth/guards/jwt-auth.guard';
@@ -14,7 +24,10 @@ import { GeoService } from './geo.service';
 import { GeoRunnerService } from './geo-runner.service';
 import { CreateQueryDto, UpdateQueryDto } from './dto/create-query.dto';
 import { CreateMentionDto } from './dto/create-mention.dto';
-import { CreateCompetitorDto, UpdateCompetitorDto } from './dto/create-competitor.dto';
+import {
+  CreateCompetitorDto,
+  UpdateCompetitorDto,
+} from './dto/create-competitor.dto';
 import { CreateVisibilityScoreDto } from './dto/create-visibility-score.dto';
 import { ResponseDto } from '../../common/dto/response.dto';
 
@@ -44,7 +57,10 @@ export class GeoController {
   @HttpCode(HttpStatus.OK)
   async runAll() {
     this.runner.runAll().catch(() => {});
-    return new ResponseDto({ started: true }, 'GEO run iniciado para todos os clientes');
+    return new ResponseDto(
+      { started: true },
+      'GEO run iniciado para todos os clientes',
+    );
   }
 
   @Post('clients/:clientId/run')
@@ -52,7 +68,10 @@ export class GeoController {
   @HttpCode(HttpStatus.OK)
   async runClient(@Param('clientId', ParseUUIDPipe) clientId: string) {
     this.runner.runForClient(clientId).catch(() => {});
-    return new ResponseDto({ started: true }, 'Análise iniciada — os resultados aparecerão em instantes');
+    return new ResponseDto(
+      { started: true },
+      'Análise iniciada — os resultados aparecerão em instantes',
+    );
   }
 
   // ─── Platforms ────────────────────────────────────────────────────────────
@@ -210,7 +229,12 @@ export class GeoController {
   }
 
   @Post('clients/:clientId/scores')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER, UserRole.TECHNICAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.MANAGER,
+    UserRole.TECHNICAL,
+  )
   @HttpCode(HttpStatus.CREATED)
   async upsertScore(
     @Param('clientId', ParseUUIDPipe) clientId: string,

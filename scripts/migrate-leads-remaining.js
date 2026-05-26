@@ -274,8 +274,8 @@ async function migrateLead(row, users) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const LAST_OFFSET = 72065;
-// 19.229 leads no banco → 549 páginas × 35 = 19.215 → offset seguro 19.180
-const START_OFFSET = 19180;
+// Migração completa — começa do 0, idempotente (pula legacy_id já existentes)
+const START_OFFSET = 0;
 
 (async () => {
   const start = Date.now();

@@ -23,7 +23,9 @@ export class ScoresService {
   async scheduledRecalculation() {
     this.logger.log('Iniciando recálculo de scores de clientes...');
     const result = await this.recalculateAll();
-    this.logger.log(`Scores recalculados: ${result.calculated} clientes, ${result.skipped} sem dados GSC`);
+    this.logger.log(
+      `Scores recalculados: ${result.calculated} clientes, ${result.skipped} sem dados GSC`,
+    );
   }
 
   async recalculateAll(): Promise<{ calculated: number; skipped: number }> {
@@ -55,7 +57,9 @@ export class ScoresService {
     });
 
     if (snapshots.length === 0) {
-      throw new NotFoundException('Sem dados do Google Search Console para este cliente.');
+      throw new NotFoundException(
+        'Sem dados do Google Search Console para este cliente.',
+      );
     }
 
     const latest = snapshots[0];
@@ -68,7 +72,11 @@ export class ScoresService {
 
     const scoreAccess = previous
       ? this.calcTrendScore(currImpressions, prevImpressions, 25)
-      : this.calcAbsoluteScore(currImpressions, [500, 2000, 10000, 30000, 80000], 25);
+      : this.calcAbsoluteScore(
+          currImpressions,
+          [500, 2000, 10000, 30000, 80000],
+          25,
+        );
 
     const scoreClicks = previous
       ? this.calcTrendScore(currClicks, prevClicks, 25)
@@ -79,7 +87,10 @@ export class ScoresService {
     );
     const scoreIndexation = this.calcIndexationScore(latest.pages?.length ?? 0);
 
-    const score = Math.min(100, scoreAccess + scoreClicks + scorePositioning + scoreIndexation);
+    const score = Math.min(
+      100,
+      scoreAccess + scoreClicks + scorePositioning + scoreIndexation,
+    );
 
     const entry = this.scoreRepo.create({
       client_id: clientId,
@@ -119,7 +130,9 @@ export class ScoresService {
     });
   }
 
-  async getOverview(): Promise<Array<{ client_id: string; score: number; calculated_at: Date }>> {
+  async getOverview(): Promise<
+    Array<{ client_id: string; score: number; calculated_at: Date }>
+  > {
     return this.scoreRepo.query(`
       SELECT DISTINCT ON (client_id) client_id, score, calculated_at
       FROM crm.client_scores
@@ -129,7 +142,12 @@ export class ScoresService {
 
   private calcTrendScore(current: number, prev: number, max: number): number {
     if (prev === 0 && current === 0) return 0;
-    if (prev === 0) return this.calcAbsoluteScore(current, [500, 2000, 10000, 30000, 80000], max);
+    if (prev === 0)
+      return this.calcAbsoluteScore(
+        current,
+        [500, 2000, 10000, 30000, 80000],
+        max,
+      );
     const growth = (current - prev) / prev;
     if (growth >= 0.2) return max;
     if (growth <= -1) return 0;
@@ -138,11 +156,16 @@ export class ScoresService {
   }
 
   // Score based on absolute value against thresholds (5 levels → 5 equal steps)
-  private calcAbsoluteScore(value: number, thresholds: number[], max: number): number {
+  private calcAbsoluteScore(
+    value: number,
+    thresholds: number[],
+    max: number,
+  ): number {
     if (value <= 0) return 0;
     const step = max / thresholds.length;
     for (let i = 0; i < thresholds.length; i++) {
-      if (value < thresholds[i]) return parseFloat((step * i || step * 0.5).toFixed(2));
+      if (value < thresholds[i])
+        return parseFloat((step * i || step * 0.5).toFixed(2));
     }
     return max;
   }

@@ -18,10 +18,26 @@ async function seed() {
   console.log('🌱 Iniciando seed...');
 
   const users = [
-    { name: 'Matheus Silveira', email: 'matheus@qualitysmi.com.br', role: 'SUPER_ADMIN' },
-    { name: 'Claudia Silveira', email: 'claudia@qualitysmi.com.br', role: 'DIRECTOR' },
-    { name: 'Bruna Silveira', email: 'bruna@qualitysmi.com.br', role: 'DIRECTOR' },
-    { name: 'Maicon Willi', email: 'maicon@qualitysmi.com.br', role: 'MANAGER' },
+    {
+      name: 'Matheus Silveira',
+      email: 'matheus@qualitysmi.com.br',
+      role: 'SUPER_ADMIN',
+    },
+    {
+      name: 'Claudia Silveira',
+      email: 'claudia@qualitysmi.com.br',
+      role: 'DIRECTOR',
+    },
+    {
+      name: 'Bruna Silveira',
+      email: 'bruna@qualitysmi.com.br',
+      role: 'DIRECTOR',
+    },
+    {
+      name: 'Maicon Willi',
+      email: 'maicon@qualitysmi.com.br',
+      role: 'MANAGER',
+    },
     { name: 'Luciana', email: 'luciana@qualitysmi.com.br', role: 'FINANCIAL' },
     { name: 'Daniel', email: 'daniel@qualitysmi.com.br', role: 'MANAGER' },
   ];

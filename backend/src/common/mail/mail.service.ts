@@ -8,10 +8,6 @@ export interface SendMailInput {
   html?: string;
 }
 
-/**
- * Mail service minimalista. Usa SendGrid HTTP API se SENDGRID_API_KEY estiver definido,
- * caso contrário loga o conteúdo (modo dev / fallback). Não bloqueia o request em falhas.
- */
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -19,12 +15,14 @@ export class MailService {
   constructor(private readonly config: ConfigService) {}
 
   async send(input: SendMailInput): Promise<void> {
-    const apiKey = this.config.get<string>('SENDGRID_API_KEY');
-    const from = this.config.get<string>('SENDGRID_FROM_EMAIL');
-    const fromName = this.config.get<string>('SENDGRID_FROM_NAME') || 'Quality SMI';
+    const apiKey = this.config.get<string>('RESEND_API_KEY');
+    const from =
+      this.config.get<string>('RESEND_FROM_EMAIL') ||
+      'noreply@marketing.qualitysmi.com.br';
+    const fromName =
+      this.config.get<string>('RESEND_FROM_NAME') || 'Quality SMI';
 
-    if (!apiKey || !from) {
-      // Fallback dev — apenas loga
+    if (!apiKey) {
       this.logger.log(
         `[MAIL FALLBACK] to=${input.to} subject="${input.subject}"\n${input.text}`,
       );
@@ -32,25 +30,23 @@ export class MailService {
     }
 
     try {
-      const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          personalizations: [{ to: [{ email: input.to }] }],
-          from: { email: from, name: fromName },
+          from: `${fromName} <${from}>`,
+          to: [input.to],
           subject: input.subject,
-          content: [
-            { type: 'text/plain', value: input.text },
-            ...(input.html ? [{ type: 'text/html', value: input.html }] : []),
-          ],
+          text: input.text,
+          ...(input.html ? { html: input.html } : {}),
         }),
       });
       if (!res.ok) {
         const body = await res.text().catch(() => '');
-        this.logger.error(`SendGrid HTTP ${res.status}: ${body}`);
+        this.logger.error(`Resend HTTP ${res.status}: ${body}`);
       }
     } catch (err) {
       this.logger.error(`Mail send failed: ${(err as Error).message}`);

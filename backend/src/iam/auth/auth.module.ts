@@ -26,7 +26,8 @@ import { MailModule } from '../../common/mail/mail.module';
         publicKey: config.get<string>('jwt.publicKey') ?? '',
         signOptions: {
           algorithm: 'RS256' as const,
-          expiresIn: (config.get<string>('jwt.accessExpiry') ?? '15m') as `${number}${'s'|'m'|'h'|'d'}`,
+          expiresIn: (config.get<string>('jwt.accessExpiry') ??
+            '15m') as `${number}${'s' | 'm' | 'h' | 'd'}`,
         },
       }),
     }),

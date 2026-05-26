@@ -21,7 +21,8 @@ export class EmailSendingService {
     private readonly configService: ConfigService,
   ) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
-    this.appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3001';
+    this.appUrl =
+      this.configService.get<string>('APP_URL') ?? 'http://localhost:3001';
 
     if (!apiKey) {
       this.logger.warn(
@@ -33,7 +34,10 @@ export class EmailSendingService {
     }
   }
 
-  async sendCampaign(campaignId: string, opts?: { limit?: number; offset?: number }): Promise<void> {
+  async sendCampaign(
+    campaignId: string,
+    opts?: { limit?: number; offset?: number },
+  ): Promise<void> {
     const campaigns = await this.dataSource.query(
       `SELECT * FROM crm.email_campaigns WHERE id = $1`,
       [campaignId],
@@ -45,7 +49,11 @@ export class EmailSendingService {
 
     const campaign = campaigns[0];
 
-    if (campaign.status !== 'DRAFT' && campaign.status !== 'SCHEDULED' && campaign.status !== 'FAILED') {
+    if (
+      campaign.status !== 'DRAFT' &&
+      campaign.status !== 'SCHEDULED' &&
+      campaign.status !== 'FAILED'
+    ) {
       throw new BadRequestException(
         `Campanha não pode ser enviada no status atual: ${campaign.status}`,
       );
@@ -88,7 +96,10 @@ export class EmailSendingService {
 
     if (filtered.length > 0) {
       const placeholders = filtered
-        .map((_, i) => `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`)
+        .map(
+          (_, i) =>
+            `($1, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4}, $${i * 4 + 5})`,
+        )
         .join(', ');
       const values: unknown[] = [campaignId];
       filtered.forEach((m) => {
@@ -144,7 +155,9 @@ export class EmailSendingService {
 
             if ((result as any)?.error) {
               const err = (result as any).error;
-              throw new Error(`Resend: ${err.message ?? err.name ?? 'erro desconhecido'}`);
+              throw new Error(
+                `Resend: ${err.message ?? err.name ?? 'erro desconhecido'}`,
+              );
             }
 
             const messageId = (result as any)?.data?.id ?? null;
@@ -181,7 +194,8 @@ export class EmailSendingService {
     }
 
     // Se zero emails foram enviados e havia destinatários, marca como FAILED
-    const finalStatus = (sentCount === 0 && filtered.length > 0) ? 'FAILED' : 'SENT';
+    const finalStatus =
+      sentCount === 0 && filtered.length > 0 ? 'FAILED' : 'SENT';
     if (finalStatus === 'FAILED') {
       this.logger.error(
         `Campanha ${campaignId}: todos os ${filtered.length} envios falharam. Verifique a chave Resend e o domínio remetente.`,
@@ -212,7 +226,9 @@ export class EmailSendingService {
     );
 
     if (!recipients.length) {
-      this.logger.warn(`Recipient não encontrado para message_id: ${messageId}`);
+      this.logger.warn(
+        `Recipient não encontrado para message_id: ${messageId}`,
+      );
       return;
     }
 
@@ -360,11 +376,18 @@ export class EmailSendingService {
           typeof campaign.audience_filters === 'string'
             ? JSON.parse(campaign.audience_filters)
             : (campaign.audience_filters ?? {});
-        const emails: string[] = Array.isArray(filters['emails']) ? (filters['emails'] as string[]) : [];
+        const emails: string[] = Array.isArray(filters['emails'])
+          ? (filters['emails'] as string[])
+          : [];
         return emails
           .map((e: string) => e.trim().toLowerCase())
           .filter((e: string) => e.includes('@'))
-          .map((email: string) => ({ email, name: null, type: 'lead' as const, id: null as unknown as string }));
+          .map((email: string) => ({
+            email,
+            name: null,
+            type: 'lead' as const,
+            id: null as unknown as string,
+          }));
       }
 
       default:

@@ -14,7 +14,11 @@ export class AddGscGa4ColumnsToClients1748000010000 implements MigrationInterfac
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE crm.clients DROP COLUMN IF EXISTS gsc_site_url`);
-    await queryRunner.query(`ALTER TABLE crm.clients DROP COLUMN IF EXISTS ga4_property_id`);
+    await queryRunner.query(
+      `ALTER TABLE crm.clients DROP COLUMN IF EXISTS gsc_site_url`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE crm.clients DROP COLUMN IF EXISTS ga4_property_id`,
+    );
   }
 }

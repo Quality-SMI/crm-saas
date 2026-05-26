@@ -28,7 +28,8 @@ import { PublicModule } from './public/public.module';
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => config.get('database') as TypeOrmModuleOptions,
+      useFactory: (config: ConfigService) =>
+        config.get('database') as TypeOrmModuleOptions,
     }),
 
     ThrottlerModule.forRootAsync({

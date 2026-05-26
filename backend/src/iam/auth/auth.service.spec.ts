@@ -42,7 +42,11 @@ describe('AuthService', () => {
       create: jest.fn((d) => d),
       update: jest.fn(),
     };
-    resetRepo = { insert: jest.fn(), findOne: jest.fn(), save: jest.fn(async (x) => x) };
+    resetRepo = {
+      insert: jest.fn(),
+      findOne: jest.fn(),
+      save: jest.fn(async (x) => x),
+    };
     permissionsService = { getEffectivePermissions: jest.fn(async () => []) };
     mail = { send: jest.fn(async () => undefined) };
 
@@ -51,9 +55,15 @@ describe('AuthService', () => {
         AuthService,
         { provide: getRepositoryToken(User), useValue: userRepo },
         { provide: getRepositoryToken(Session), useValue: sessionRepo },
-        { provide: getRepositoryToken(PasswordResetToken), useValue: resetRepo },
+        {
+          provide: getRepositoryToken(PasswordResetToken),
+          useValue: resetRepo,
+        },
         { provide: JwtService, useValue: { sign: () => 'jwt.signed' } },
-        { provide: ConfigService, useValue: { get: (k: string, d?: unknown) => d } },
+        {
+          provide: ConfigService,
+          useValue: { get: (k: string, d?: unknown) => d },
+        },
         { provide: PermissionsService, useValue: permissionsService },
         { provide: MailService, useValue: mail },
       ],
@@ -65,29 +75,40 @@ describe('AuthService', () => {
   describe('login', () => {
     it('rejeita senha errada com UnauthorizedException', async () => {
       const hash = await bcrypt.hash('correct-password', 4);
-      userRepo.findOne.mockResolvedValueOnce(makeUser({ password_hash: hash } as any));
+      userRepo.findOne.mockResolvedValueOnce(makeUser({ password_hash: hash }));
       await expect(
-        service.login({ email: 'user@example.com', password: 'wrong' } as any, '1.1.1.1', 'UA'),
+        service.login(
+          { email: 'user@example.com', password: 'wrong' } as any,
+          '1.1.1.1',
+          'UA',
+        ),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('rejeita conta bloqueada mesmo com senha correta', async () => {
       const hash = await bcrypt.hash('p@ssw0rd', 4);
-      const user = makeUser({ password_hash: hash } as any);
+      const user = makeUser({ password_hash: hash });
       user.locked_until = new Date(Date.now() + 60_000);
       userRepo.findOne.mockResolvedValueOnce(user);
       await expect(
-        service.login({ email: user.email, password: 'p@ssw0rd' } as any, '1.1.1.1', 'UA'),
+        service.login(
+          { email: user.email, password: 'p@ssw0rd' } as any,
+          '1.1.1.1',
+          'UA',
+        ),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('emite tokens e zera tentativas falhas em login válido', async () => {
       const hash = await bcrypt.hash('p@ssw0rd', 4);
-      const user = makeUser({ password_hash: hash, failed_login_attempts: 3 } as any);
+      const user = makeUser({
+        password_hash: hash,
+        failed_login_attempts: 3,
+      });
       userRepo.findOne.mockResolvedValueOnce(user);
 
       const result = await service.login(
-        { email: user.email, password: 'p@ssw0rd' } as any,
+        { email: user.email, password: 'p@ssw0rd' },
         '1.1.1.1',
         'UA',
       );
@@ -110,9 +131,9 @@ describe('AuthService', () => {
         is_active: true,
         user: makeUser({ is_active: true }),
       });
-      await expect(service.refresh('raw', '1.1.1.1', 'UA')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.refresh('raw', '1.1.1.1', 'UA'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(sessionRepo.update).toHaveBeenCalledWith(
         expect.objectContaining({ token_family: 'fam-1' }),
         expect.objectContaining({ revoke_reason: 'reuse_detected' }),
@@ -139,7 +160,9 @@ describe('AuthService', () => {
   describe('requestPasswordReset', () => {
     it('responde silenciosamente quando email não existe', async () => {
       userRepo.findOne.mockResolvedValueOnce(null);
-      await expect(service.requestPasswordReset('unknown@x.com', '1.1.1.1')).resolves.toBeUndefined();
+      await expect(
+        service.requestPasswordReset('unknown@x.com', '1.1.1.1'),
+      ).resolves.toBeUndefined();
       expect(resetRepo.insert).not.toHaveBeenCalled();
       expect(mail.send).not.toHaveBeenCalled();
     });

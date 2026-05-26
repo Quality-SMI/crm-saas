@@ -10,7 +10,13 @@ import { BlogService } from './blog.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BlogArticle, BlogAuthor, BlogCategory, BlogTag, Client]),
+    TypeOrmModule.forFeature([
+      BlogArticle,
+      BlogAuthor,
+      BlogCategory,
+      BlogTag,
+      Client,
+    ]),
   ],
   controllers: [BlogController],
   providers: [BlogService],

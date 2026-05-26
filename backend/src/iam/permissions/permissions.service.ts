@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserPermission } from './entities/user-permission.entity';
-import { Permission, ALL_PERMISSIONS, ROLE_PERMISSION_DEFAULTS } from './enums/permission.enum';
+import {
+  Permission,
+  ALL_PERMISSIONS,
+  ROLE_PERMISSION_DEFAULTS,
+} from './enums/permission.enum';
 import { UserRole } from '../users/enums/user-role.enum';
 
 export interface UserPermissionsResponse {
@@ -23,7 +27,10 @@ export class PermissionsService {
     return (ROLE_PERMISSION_DEFAULTS[role] ?? []).map((p) => p as string);
   }
 
-  async getEffectivePermissions(userId: string, role: UserRole): Promise<string[]> {
+  async getEffectivePermissions(
+    userId: string,
+    role: UserRole,
+  ): Promise<string[]> {
     if (role === UserRole.SUPER_ADMIN) return [...ALL_PERMISSIONS];
 
     const defaults = new Set<string>(this.getRoleDefaults(role));
@@ -49,7 +56,10 @@ export class PermissionsService {
 
     return {
       role_defaults: roleDefaults,
-      overrides: overrides.map((o) => ({ permission: o.permission, granted: o.granted })),
+      overrides: overrides.map((o) => ({
+        permission: o.permission,
+        granted: o.granted,
+      })),
       effective,
     };
   }
@@ -68,7 +78,9 @@ export class PermissionsService {
       if (!ALL_PERMISSIONS.includes(perm as Permission)) continue;
       const isDefault = defaults.has(perm);
       if (granted !== isDefault) {
-        toSave.push(this.repo.create({ user_id: userId, permission: perm, granted }));
+        toSave.push(
+          this.repo.create({ user_id: userId, permission: perm, granted }),
+        );
       }
     }
 

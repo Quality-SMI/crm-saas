@@ -1,8 +1,8 @@
 export enum LeadOrigin {
-  WEBSITE      = 'WEBSITE',
-  REFERRAL     = 'REFERRAL',
-  COLD_CALL    = 'COLD_CALL',
+  WEBSITE = 'WEBSITE',
+  REFERRAL = 'REFERRAL',
+  COLD_CALL = 'COLD_CALL',
   SOCIAL_MEDIA = 'SOCIAL_MEDIA',
-  EVENT        = 'EVENT',
-  OTHER        = 'OTHER',
+  EVENT = 'EVENT',
+  OTHER = 'OTHER',
 }
