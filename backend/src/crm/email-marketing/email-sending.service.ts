@@ -492,8 +492,11 @@ export class EmailSendingService {
         <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
           <!-- Header -->
           <tr>
-            <td style="background:#ffffff;padding:20px 32px 16px;border-bottom:3px solid #e36420;text-align:center;">
-              <img src="${this.logoSrc}" alt="Quality SMI" height="48" style="display:block;margin:0 auto 10px;height:48px;width:auto;max-width:200px;" />
+            <td style="background:#ffffff;padding:24px 32px 16px;border-bottom:3px solid #e36420;text-align:center;">
+              <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;margin-bottom:10px;line-height:1;">
+                <span style="font-size:28px;font-weight:900;color:#e36420;letter-spacing:-0.5px;">Quality</span><span style="font-size:28px;font-weight:900;color:#1a2332;letter-spacing:-0.5px;">SMI</span>
+                <div style="font-size:10px;color:#9ca3af;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;">Sistema de Marketing para Internet</div>
+              </div>
               <div>
                 <span style="display:inline-block;background:#4285F4;border-radius:4px;padding:3px 10px;font-size:10px;color:#ffffff;font-weight:700;margin:0 3px;letter-spacing:0.2px;">Google Partner</span>
                 <span style="display:inline-block;background:#0866FF;border-radius:4px;padding:3px 10px;font-size:10px;color:#ffffff;font-weight:700;margin:0 3px;letter-spacing:0.2px;">Meta Partner</span>
