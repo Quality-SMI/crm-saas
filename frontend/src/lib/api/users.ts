@@ -68,13 +68,25 @@ export interface PermissionGroup {
 export const PERMISSION_GROUPS: PermissionGroup[] = [
   {
     id: 'modules',
-    label: 'Módulos',
+    label: 'Módulos Principais',
     permissions: [
-      { code: 'leads_access', label: 'Leads', description: 'Acesso ao módulo de leads e prospecção' },
-      { code: 'agenda_access', label: 'Agenda', description: 'Acesso à agenda e compromissos' },
       { code: 'clients_access', label: 'Clientes', description: 'Acesso ao módulo de clientes' },
+      { code: 'leads_access', label: 'Leads', description: 'Acesso ao funil de vendas e prospecção' },
+      { code: 'agenda_access', label: 'Agenda', description: 'Acesso à agenda e compromissos' },
       { code: 'user_management_access', label: 'Gestão de Usuários', description: 'Criar, editar e remover usuários do sistema' },
       { code: 'admin_access', label: 'Acesso Administrativo', description: 'Acesso a configurações administrativas do sistema' },
+    ],
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing Digital',
+    permissions: [
+      { code: 'keywords_access', label: 'Palavras-chave', description: 'Gerenciar keywords contratadas por cliente' },
+      { code: 'positioning_access', label: 'Posicionamento Google', description: 'Acesso aos dados do Google Search Console e relatórios mensais' },
+      { code: 'geo_access', label: 'GEO — Visibilidade em IAs', description: 'Acesso às análises de visibilidade em ChatGPT, Gemini e outras IAs' },
+      { code: 'blog_access', label: 'Blog', description: 'Criar e editar artigos de blog por cliente' },
+      { code: 'email_marketing_access', label: 'Email Marketing', description: 'Criar e disparar campanhas de email para leads e clientes' },
+      { code: 'scores_access', label: 'Scores de Clientes', description: 'Visualizar score de saúde e engajamento dos clientes' },
     ],
   },
   {
@@ -92,14 +104,8 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     permissions: [
       { code: 'reports_access', label: 'Relatórios', description: 'Acesso a relatórios gerenciais e operacionais' },
       { code: 'analytics_access', label: 'Analytics', description: 'Acesso ao módulo de analytics e dashboards' },
-      { code: 'export_permissions', label: 'Exportação de Dados', description: 'Exportar dados em CSV, Excel e outros formatos' },
-    ],
-  },
-  {
-    id: 'advanced',
-    label: 'Recursos Avançados',
-    permissions: [
       { code: 'ai_visibility', label: 'Central de IA', description: 'Acesso aos recursos de inteligência artificial' },
+      { code: 'export_permissions', label: 'Exportação de Dados', description: 'Exportar dados em CSV, Excel e outros formatos' },
     ],
   },
 ];

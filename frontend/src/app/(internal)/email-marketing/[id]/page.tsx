@@ -13,6 +13,7 @@ const STATUS_LABELS: Record<CampaignStatus, { label: string; color: string }> = 
   SCHEDULED: { label: 'Agendado',  color: 'bg-blue-100 text-blue-700' },
   SENDING:   { label: 'Enviando…', color: 'bg-yellow-100 text-yellow-700' },
   SENT:      { label: 'Enviado',   color: 'bg-green-100 text-green-700' },
+  FAILED:    { label: 'Falhou',    color: 'bg-red-100 text-red-700' },
   PAUSED:    { label: 'Pausado',   color: 'bg-orange-100 text-orange-700' },
   CANCELLED: { label: 'Cancelado', color: 'bg-red-100 text-red-700' },
 };
@@ -125,11 +126,28 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   if (!campaign) return <div className="text-center py-20 text-sm text-gray-400">Campanha não encontrada.</div>;
 
   const st = STATUS_LABELS[campaign.status] ?? { label: campaign.status, color: 'bg-gray-100 text-gray-600' };
-  const isDraft = campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED';
+  const isDraft = campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED' || campaign.status === 'FAILED';
   const isActive = campaign.status === 'SENT' || campaign.status === 'SENDING';
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
+      {/* Banner de erro quando falhou */}
+      {campaign.status === 'FAILED' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+          <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">Envio falhou — nenhum email foi entregue</p>
+            <p className="text-xs text-red-600 mt-1">
+              O serviço de email (Resend) rejeitou o envio. Causa mais provável: o domínio <strong>qualitysmi.com.br</strong> ainda não está verificado no Resend.
+            </p>
+            <p className="text-xs text-red-500 mt-1">
+              Para corrigir: acesse resend.com → Domains → Add Domain → qualitysmi.com.br → adicione os registros DNS no Registro.br → clique em Verify.
+              Após verificar, volte ao rascunho e reenvie.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3 flex-wrap">
         <button onClick={() => router.push('/email-marketing')}

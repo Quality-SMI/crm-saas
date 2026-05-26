@@ -1,6 +1,6 @@
 import apiClient from './client';
 
-export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'SENT' | 'PAUSED' | 'CANCELLED';
+export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'SENT' | 'FAILED' | 'PAUSED' | 'CANCELLED';
 export type AudienceType =
   | 'all_clients'
   | 'active_clients'

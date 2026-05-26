@@ -9,11 +9,12 @@ import {
 } from 'lucide-react';
 import { emailMarketingApi, EmailCampaign, CampaignStatus } from '@/lib/api/email-marketing';
 
-const STATUS_LABELS: Record<CampaignStatus, { label: string; color: string }> = {
+const STATUS_LABELS: Record<CampaignStatus | 'FAILED', { label: string; color: string }> = {
   DRAFT:     { label: 'Rascunho',   color: 'bg-gray-100 text-gray-600' },
   SCHEDULED: { label: 'Agendado',   color: 'bg-blue-100 text-blue-700' },
   SENDING:   { label: 'Enviando…',  color: 'bg-yellow-100 text-yellow-700' },
   SENT:      { label: 'Enviado',    color: 'bg-green-100 text-green-700' },
+  FAILED:    { label: 'Falhou',     color: 'bg-red-100 text-red-700' },
   PAUSED:    { label: 'Pausado',    color: 'bg-orange-100 text-orange-700' },
   CANCELLED: { label: 'Cancelado',  color: 'bg-red-100 text-red-700' },
 };

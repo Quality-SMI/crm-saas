@@ -45,9 +45,17 @@ export class EmailSendingService {
 
     const campaign = campaigns[0];
 
-    if (campaign.status !== 'DRAFT' && campaign.status !== 'SCHEDULED') {
+    if (campaign.status !== 'DRAFT' && campaign.status !== 'SCHEDULED' && campaign.status !== 'FAILED') {
       throw new BadRequestException(
         `Campanha não pode ser enviada no status atual: ${campaign.status}`,
+      );
+    }
+
+    // Resetar recipients FAILED para PENDING ao reenviar uma campanha que falhou
+    if (campaign.status === 'FAILED') {
+      await this.dataSource.query(
+        `UPDATE crm.email_campaign_recipients SET status = 'PENDING' WHERE campaign_id = $1 AND status = 'FAILED'`,
+        [campaignId],
       );
     }
 
@@ -172,11 +180,19 @@ export class EmailSendingService {
       }
     }
 
+    // Se zero emails foram enviados e havia destinatários, marca como FAILED
+    const finalStatus = (sentCount === 0 && filtered.length > 0) ? 'FAILED' : 'SENT';
+    if (finalStatus === 'FAILED') {
+      this.logger.error(
+        `Campanha ${campaignId}: todos os ${filtered.length} envios falharam. Verifique a chave Resend e o domínio remetente.`,
+      );
+    }
+
     await this.dataSource.query(
       `UPDATE crm.email_campaigns
-       SET status = 'SENT', sent_count = $1, updated_at = NOW()
+       SET status = $3, sent_count = $1, updated_at = NOW()
        WHERE id = $2`,
-      [sentCount, campaignId],
+      [sentCount, campaignId, finalStatus],
     );
   }
 
