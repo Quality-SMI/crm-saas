@@ -59,7 +59,7 @@ export class EmailMarketingService {
 
   async listCampaigns(userId: string): Promise<unknown[]> {
     const rows = await this.dataSource.query(
-      `SELECT * FROM crm.email_campaigns ORDER BY created_at DESC`,
+      `SELECT * FROM crm.email_campaigns WHERE deleted_at IS NULL ORDER BY created_at DESC`,
     );
     return rows;
   }
@@ -150,7 +150,7 @@ export class EmailMarketingService {
   async deleteCampaign(id: string): Promise<void> {
     await this.getCampaign(id);
     await this.dataSource.query(
-      `UPDATE crm.email_campaigns SET status = 'CANCELLED', updated_at = NOW() WHERE id = $1`,
+      `UPDATE crm.email_campaigns SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1`,
       [id],
     );
   }

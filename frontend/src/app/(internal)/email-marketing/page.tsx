@@ -80,9 +80,12 @@ export default function EmailMarketingPage() {
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent, status: string) => {
     e.stopPropagation();
-    if (!confirm('Cancelar e excluir esta campanha?')) return;
+    const msg = status === 'SENT'
+      ? 'Excluir esta campanha? Os dados de envio e métricas serão perdidos.'
+      : 'Excluir esta campanha?';
+    if (!confirm(msg)) return;
     await emailMarketingApi.deleteCampaign(id);
     setCampaigns(prev => prev.filter(c => c.id !== id));
   };
@@ -212,9 +215,9 @@ export default function EmailMarketingPage() {
                         <BarChart2 size={14} />
                       </button>
                     )}
-                    {c.status !== 'SENT' && c.status !== 'SENDING' && (
+                    {c.status !== 'SENDING' && (
                       <button
-                        onClick={(e) => handleDelete(c.id, e)}
+                        onClick={(e) => handleDelete(c.id, e, c.status)}
                         className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
                         title="Excluir"
                       >
