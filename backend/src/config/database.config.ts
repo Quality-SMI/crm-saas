@@ -10,6 +10,7 @@ export default registerAs(
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
     synchronize: false,
+    migrationsRun: true,
     logging: process.env.NODE_ENV === 'development',
     ssl:
       process.env.DATABASE_SSL === 'true'
