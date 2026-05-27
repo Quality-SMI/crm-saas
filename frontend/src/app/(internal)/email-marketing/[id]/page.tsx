@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Send, Eye, MousePointerClick, AlertCircle, Ban,
   Mail, Edit, Play, RefreshCw, Users, Clock, BarChart2,
+  Paperclip, FileText,
 } from 'lucide-react';
 import { emailMarketingApi, EmailCampaign, EmailRecipient, CampaignStatus } from '@/lib/api/email-marketing';
 
@@ -238,6 +239,22 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               <dd className="text-gray-700">{new Date(campaign.created_at).toLocaleDateString('pt-BR')}</dd>
             </div>
           </dl>
+          {campaign.attachments?.length > 0 && (
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Paperclip size={11} /> Anexos ({campaign.attachments.length})
+              </p>
+              <div className="space-y-1">
+                {campaign.attachments.map((a, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs bg-gray-50 rounded-lg px-2.5 py-1.5">
+                    <FileText size={12} className="text-gray-400 shrink-0" />
+                    <span className="flex-1 truncate text-gray-700">{a.name}</span>
+                    <span className="text-gray-400 shrink-0">{a.type.split('/')[1]?.toUpperCase() ?? 'FILE'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Engagement */}

@@ -220,7 +220,7 @@ function CampaignEditor({
         setSubject(c.subject);
         setPreviewText(c.preview_text ?? '');
         setFromName(c.from_name);
-        setFromEmail(c.from_email);
+        setFromEmail(c.from_email || 'noreply@marketing.qualitysmi.com.br');
         setReplyTo(c.reply_to ?? '');
         setAudienceType(c.audience_type as AudienceType);
         if (c.scheduled_at) { setScheduleEnabled(true); setScheduledAt(c.scheduled_at.slice(0, 16)); }
@@ -337,7 +337,10 @@ function CampaignEditor({
         });
       }
       router.push('/email-marketing');
-    } catch { /* noop */ } finally {
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao salvar';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
       setSaving(false);
     }
   };
@@ -371,7 +374,10 @@ function CampaignEditor({
       const sendOpts = limitEnabled ? { limit: sendLimit, offset: sendOffset || undefined } : undefined;
       await emailMarketingApi.sendCampaign(id, sendOpts);
       router.push('/email-marketing');
-    } catch { /* noop */ } finally {
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao enviar campanha';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
       setSending(false);
       setShowSendModal(false);
     }

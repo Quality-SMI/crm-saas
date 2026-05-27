@@ -226,6 +226,19 @@ export class AuthService {
     this.logger.log(`PASSWORD_RESET_SUCCESS user=${user.id} ip=${ip}`);
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await this.userRepo.findOne({
+      where: { id: userId, is_active: true },
+      select: { id: true, password_hash: true },
+    });
+    if (!user) throw new UnauthorizedException('Usuário não encontrado');
+    const isValid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isValid) throw new UnauthorizedException('Senha atual incorreta');
+    user.password_hash = await bcrypt.hash(newPassword, 12);
+    await this.userRepo.save(user);
+    this.logger.log(`CHANGE_PASSWORD user=${userId}`);
+  }
+
   async getProfile(userId: string) {
     const user = await this.userRepo.findOne({
       where: { id: userId, is_active: true },

@@ -138,8 +138,32 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
         keywordsApi.list(clientId),
         positioningApi.getLatestMonthlyReport(clientId),
       ]);
-      if (snaps.status === 'fulfilled') setSnapshots(snaps.value);
-      if (lat.status === 'fulfilled') setLatest(lat.value);
+      if (snaps.status === 'fulfilled') {
+        // Se não há snapshots para o período selecionado, tenta 90 dias como fallback
+        if (snaps.value.length === 0 && days !== 90) {
+          try {
+            const fallback = await positioningApi.getSnapshots(clientId, 90);
+            setSnapshots(fallback);
+          } catch {
+            setSnapshots([]);
+          }
+        } else {
+          setSnapshots(snaps.value);
+        }
+      }
+      if (lat.status === 'fulfilled') {
+        // Se não há snapshot recente para o período, usa 90 dias como fallback
+        if (!lat.value && days !== 90) {
+          try {
+            const fallback = await positioningApi.getLatest(clientId, 90);
+            setLatest(fallback);
+          } catch {
+            setLatest(null);
+          }
+        } else {
+          setLatest(lat.value);
+        }
+      }
       if (kws.status === 'fulfilled') setContractedKeywords(kws.value.map(k => k.keyword));
       if (report.status === 'fulfilled') setMonthlyReport(report.value);
     } finally {
@@ -154,7 +178,7 @@ export function PositioningTab({ clientId, clientName, clarityProjectId, onClari
   const handleSaveClarity = async () => {
     setSavingClarity(true);
     try {
-      await onClarityProjectIdChange?.(clarityId.trim() || null);
+      onClarityProjectIdChange?.(clarityId.trim() || null);
       setEditingClarity(false);
     } finally {
       setSavingClarity(false);

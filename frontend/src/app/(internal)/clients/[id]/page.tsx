@@ -13,6 +13,7 @@ import { scoresApi, ClientScore } from '@/lib/api/scores';
 import { ScoreBadge } from '@/components/ui/score-badge';
 import { ScorePanel } from '@/components/ui/score-panel';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useAuthStore } from '@/stores/auth.store';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE',    label: 'Ativo',     active: 'bg-green-600 text-white',   idle: 'bg-green-50 text-green-700 hover:bg-green-100' },
@@ -43,6 +44,8 @@ export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { hasRole, hasPermission } = useAuthStore();
+  const canViewFinancial = hasRole('SUPER_ADMIN', 'DIRECTOR', 'MANAGER', 'FINANCIAL') || hasPermission('financial_visibility');
 
   const initialTab = (searchParams.get('tab') as 'dados' | 'palavras-chave' | 'posicionamento' | 'api-keys') ?? 'dados';
   const openScore = searchParams.get('score') === '1';
@@ -137,7 +140,7 @@ export default function ClientDetailPage() {
             >
               {client.domain}
             </a>
-            {client.monthly_value && (
+            {client.monthly_value && canViewFinancial && (
               <span className="flex items-center gap-1.5">
                 <span className="text-sm font-semibold text-green-700">
                   {valueVisible

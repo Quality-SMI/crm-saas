@@ -155,14 +155,23 @@ export default function LeadsPage() {
             <p className="text-sm">Nenhum lead encontrado</p>
           </div>
         ) : (
-          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[520px]" style={{ tableLayout: 'fixed' }}>
             <colgroup>
               {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 text-left">
                 {(['Lead', 'Site', 'Contato', 'Etapa', 'Origem', 'Responsável'] as const).map((label, i) => (
-                  <th key={label} className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide relative select-none">
+                  <th
+                    key={label}
+                    className={`px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide relative select-none ${
+                      i === 1 ? 'hidden md:table-cell' :
+                      i === 2 ? 'hidden sm:table-cell' :
+                      i === 4 ? 'hidden lg:table-cell' :
+                      i === 5 ? 'hidden lg:table-cell' : ''
+                    }`}
+                  >
                     {label}
                     <div
                       onMouseDown={(e) => startResize(i, e)}
@@ -182,7 +191,7 @@ export default function LeadsPage() {
                   <td className="px-5 py-3.5">
                     <p className="font-medium text-gray-900">{l.name}</p>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 hidden md:table-cell">
                     {l.website ? (
                       <a
                         href={l.website.startsWith('http') ? l.website : `https://${l.website}`}
@@ -198,7 +207,7 @@ export default function LeadsPage() {
                       <span className="text-xs text-gray-400">—</span>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-gray-600">
+                  <td className="px-5 py-3.5 text-gray-600 hidden sm:table-cell">
                     <p>{l.contact_name ?? '—'}</p>
                     {l.contact_email && <p className="text-xs text-gray-400 mt-0.5">{l.contact_email}</p>}
                   </td>
@@ -207,16 +216,17 @@ export default function LeadsPage() {
                       {STAGE_LABELS[l.stage]}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-gray-500 text-xs">
+                  <td className="px-5 py-3.5 text-gray-500 text-xs hidden lg:table-cell">
                     {l.origin ? ORIGIN_LABELS[l.origin] : '—'}
                   </td>
-                  <td className="px-5 py-3.5 text-gray-600 text-xs">
+                  <td className="px-5 py-3.5 text-gray-600 text-xs hidden lg:table-cell">
                     {l.owner?.name ?? '—'}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">

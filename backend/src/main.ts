@@ -4,19 +4,35 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import * as bodyParser from 'body-parser';
 import { AppModule } from './app.module';
 
+const BODY_LIMIT = '25mb';
+
 async function bootstrap() {
-  // rawBody: true preserva buffer bruto para verificação de assinatura de webhooks
   const app = await NestFactory.create(AppModule, {
-    bodyParser: true,
-    rawBody: true,
+    bodyParser: false,
+    rawBody: false,
   });
 
+  // Body parsers com limite de 25 MB (suporta anexos base64 em campanhas de email)
+  // O callback verify salva o buffer bruto em req.rawBody para verificação de webhooks
+  const expressInstance = app.getHttpAdapter().getInstance();
+  expressInstance.use(
+    bodyParser.json({
+      limit: BODY_LIMIT,
+      verify: (req: any, _res: any, buf: Buffer) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
+  expressInstance.use(
+    bodyParser.urlencoded({ limit: BODY_LIMIT, extended: true }),
+  );
+
   // Atrás de NGINX — confia em X-Forwarded-* (req.ip vira o IP real do cliente)
-  const httpAdapter = app.getHttpAdapter().getInstance();
-  if (typeof httpAdapter?.set === 'function') {
-    httpAdapter.set('trust proxy', 1);
+  if (typeof expressInstance?.set === 'function') {
+    expressInstance.set('trust proxy', 1);
   }
 
   // Security

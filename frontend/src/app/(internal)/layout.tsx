@@ -23,6 +23,7 @@ import {
   Mail,
   Menu,
   X,
+  UserCircle,
 } from 'lucide-react';
 
 const GEO_ALLOWED_ROLES = ['SUPER_ADMIN', 'DIRECTOR', 'MANAGER', 'TECHNICAL', 'WRITER'];
@@ -260,6 +261,13 @@ export default function InternalLayout({ children }: { children: React.ReactNode
             </div>
           </div>
         )}
+        <Link href="/settings/profile" title={collapsed && !isMobile ? 'Minha conta' : undefined}
+          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors mb-0.5 ${
+            collapsed && !isMobile ? 'justify-center px-0' : ''
+          } ${pathname.startsWith('/settings/profile') ? 'text-blue-700 bg-blue-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
+          <UserCircle size={13} className="flex-shrink-0" />
+          {(!collapsed || isMobile) && 'Minha conta'}
+        </Link>
         <button onClick={handleLogout} title={collapsed && !isMobile ? 'Sair' : undefined}
           className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors ${
             collapsed && !isMobile ? 'justify-center px-0' : ''

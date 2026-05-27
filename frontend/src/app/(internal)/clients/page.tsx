@@ -8,6 +8,7 @@ import { clientsApi, Client } from '@/lib/api/clients';
 import { scoresApi, ScoreOverview } from '@/lib/api/scores';
 import { ScoreBadge } from '@/components/ui/score-badge';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useAuthStore } from '@/stores/auth.store';
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   ACTIVE:    { label: 'Ativo',      color: 'bg-green-100 text-green-700' },
@@ -20,6 +21,8 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 
 export default function ClientsPage() {
   const router = useRouter();
+  const { hasRole, hasPermission } = useAuthStore();
+  const canViewFinancial = hasRole('SUPER_ADMIN', 'DIRECTOR', 'MANAGER', 'FINANCIAL') || hasPermission('financial_visibility');
   const [clients, setClients] = useState<Client[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -173,15 +176,18 @@ export default function ClientsPage() {
             )}
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="border-b border-gray-100 text-left">
-                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide w-10">#</th>
+                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide w-10 hidden sm:table-cell">#</th>
                 <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Empresa</th>
-                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Domínio</th>
-                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Contato</th>
-                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Serviço</th>
-                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Valor</th>
+                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide hidden md:table-cell">Domínio</th>
+                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide hidden lg:table-cell">Contato</th>
+                <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide hidden lg:table-cell">Serviço</th>
+                {canViewFinancial && (
+                  <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide hidden md:table-cell">Valor</th>
+                )}
                 <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Status</th>
                 <th className="px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Score</th>
               </tr>
@@ -196,20 +202,20 @@ export default function ClientsPage() {
                     onClick={() => router.push(`/clients/${c.id}`)}
                     className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
                   >
-                    <td className="px-5 py-3.5 text-xs text-gray-400 tabular-nums">
+                    <td className="px-5 py-3.5 text-xs text-gray-400 tabular-nums hidden sm:table-cell">
                       {(page - 1) * limit + i + 1}
                     </td>
                     <td className="px-5 py-3.5">
                       <p className="font-medium text-gray-900">{c.company_name}</p>
                       {c.segment && <p className="text-xs text-gray-400 mt-0.5">{c.segment.name}</p>}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 hidden md:table-cell">
                       <span className="flex items-center gap-1 text-gray-600">
                         <Globe size={13} className="opacity-50" />
                         {c.domain}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 hidden lg:table-cell">
                       <p className="text-gray-700">{c.contact_name ?? '—'}</p>
                       {primaryPhone && (
                         <span className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
@@ -218,14 +224,16 @@ export default function ClientsPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-600">
+                    <td className="px-5 py-3.5 text-gray-600 hidden lg:table-cell">
                       {c.service_type?.name ?? '—'}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-700 font-medium">
-                      {c.monthly_value
-                        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.monthly_value))
-                        : '—'}
-                    </td>
+                    {canViewFinancial && (
+                      <td className="px-5 py-3.5 text-gray-700 font-medium hidden md:table-cell">
+                        {c.monthly_value
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.monthly_value))
+                          : '—'}
+                      </td>
+                    )}
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${st.color}`}>
                         {st.label}
@@ -243,6 +251,7 @@ export default function ClientsPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Pagination + limit selector */}
