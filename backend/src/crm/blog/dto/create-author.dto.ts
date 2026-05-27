@@ -15,4 +15,9 @@ export class CreateAuthorDto {
   @IsOptional()
   @IsString()
   avatar_url?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  profile_url?: string;
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, UserCircle } from 'lucide-react';
 import { blogApi, BlogAuthor } from '@/lib/api/blog';
 import { clientsApi } from '@/lib/api/clients';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -14,6 +14,8 @@ export default function AuthorsPage() {
   const [clientName, setClientName] = useState('');
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [profileUrl, setProfileUrl] = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -24,9 +26,15 @@ export default function AuthorsPage() {
   async function handleCreate() {
     if (!name.trim()) return;
     setCreating(true);
-    const author = await blogApi.createAuthor(clientId, name.trim(), bio.trim() || undefined);
+    const author = await blogApi.createAuthor(
+      clientId,
+      name.trim(),
+      bio.trim() || undefined,
+      avatarUrl.trim() || undefined,
+      profileUrl.trim() || undefined,
+    );
     setAuthors((prev) => [...prev, author]);
-    setName(''); setBio('');
+    setName(''); setBio(''); setAvatarUrl(''); setProfileUrl('');
     setCreating(false);
   }
 
@@ -59,13 +67,26 @@ export default function AuthorsPage() {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nome"
+          placeholder="Nome *"
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <textarea
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          placeholder="Bio (opcional) — aparece na seção 'Sobre o autor' no blog"
+          rows={3}
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+        />
+        <input
+          value={avatarUrl}
+          onChange={(e) => setAvatarUrl(e.target.value)}
+          placeholder="URL da foto (opcional) — ex: https://exemplo.com/foto.jpg"
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <input
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          placeholder="Bio (opcional)"
+          value={profileUrl}
+          onChange={(e) => setProfileUrl(e.target.value)}
+          placeholder="URL do perfil (opcional) — ex: https://exemplo.com/sobre/joao"
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
@@ -79,18 +100,42 @@ export default function AuthorsPage() {
 
       <div className="space-y-2">
         {authors.map((a) => (
-          <div key={a.id} className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl">
-            <div className="flex-1">
+          <div key={a.id} className="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl">
+            {a.avatar_url ? (
+              <img
+                src={a.avatar_url}
+                alt={a.name}
+                className="w-10 h-10 rounded-full object-cover flex-shrink-0 mt-0.5"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <UserCircle size={22} className="text-gray-400" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900">{a.name}</p>
-              {a.bio && <p className="text-xs text-gray-400 mt-0.5">{a.bio}</p>}
+              {a.bio && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{a.bio}</p>}
+              {a.profile_url && (
+                <a
+                  href={a.profile_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline mt-0.5 inline-block"
+                >
+                  Ver perfil
+                </a>
+              )}
             </div>
             <Tooltip text="Excluir autor">
-              <button onClick={() => handleDelete(a.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+              <button onClick={() => handleDelete(a.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0">
                 <Trash2 size={15} />
               </button>
             </Tooltip>
           </div>
         ))}
+        {authors.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-8">Nenhum autor cadastrado ainda.</p>
+        )}
       </div>
     </div>
   );

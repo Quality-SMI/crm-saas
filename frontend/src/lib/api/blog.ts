@@ -9,6 +9,7 @@ export interface BlogAuthor {
   name: string;
   bio: string | null;
   avatar_url: string | null;
+  profile_url: string | null;
 }
 
 export interface BlogCategory {
@@ -83,8 +84,8 @@ export const blogApi = {
     return apiClient.get<{ data: BlogAuthor[] }>(`/blog/clients/${clientId}/authors`).then((r: AxiosResponse<{ data: BlogAuthor[] }>) => r.data.data);
   },
 
-  createAuthor(clientId: string, name: string, bio?: string): Promise<BlogAuthor> {
-    return apiClient.post<{ data: BlogAuthor }>(`/blog/clients/${clientId}/authors`, { name, bio }).then((r: AxiosResponse<{ data: BlogAuthor }>) => r.data.data);
+  createAuthor(clientId: string, name: string, bio?: string, avatar_url?: string, profile_url?: string): Promise<BlogAuthor> {
+    return apiClient.post<{ data: BlogAuthor }>(`/blog/clients/${clientId}/authors`, { name, bio, avatar_url, profile_url }).then((r: AxiosResponse<{ data: BlogAuthor }>) => r.data.data);
   },
 
   deleteAuthor(id: string): Promise<void> {

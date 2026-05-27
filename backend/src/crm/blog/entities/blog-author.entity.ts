@@ -23,6 +23,9 @@ export class BlogAuthor {
   @Column({ type: 'text', nullable: true })
   avatar_url: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  profile_url: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

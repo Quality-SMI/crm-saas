@@ -260,14 +260,24 @@ export class PositioningService implements OnModuleInit {
   ) {
     const sc = google.webmasters({ version: 'v3', auth });
 
-    // Usa o siteUrl descoberto; fallback para sc-domain e https://www.
-    const candidates = client.gsc_site_url
-      ? [client.gsc_site_url]
-      : [
-          `sc-domain:${client.domain}`,
-          `https://www.${client.domain}/`,
-          `https://${client.domain}/`,
-        ];
+    const domain = (client.domain ?? '').replace(/^www\./, '').toLowerCase();
+
+    // Tenta todos os formatos possíveis; retorna o que tiver mais dados
+    const seen = new Set<string>();
+    const candidates: string[] = [];
+    for (const url of [
+      client.gsc_site_url,
+      `sc-domain:${domain}`,
+      `https://www.${domain}/`,
+      `https://${domain}/`,
+      `http://www.${domain}/`,
+      `http://${domain}/`,
+    ]) {
+      if (url && !seen.has(url)) { seen.add(url); candidates.push(url); }
+    }
+
+    type GscResult = Awaited<ReturnType<PositioningService['fetchSearchConsole']>>;
+    let best: GscResult | null = null;
 
     for (const siteUrl of candidates) {
       try {
@@ -297,7 +307,7 @@ export class PositioningService implements OnModuleInit {
         ]);
 
         const s = summary.data.rows?.[0];
-        return {
+        const result: GscResult = {
           total_clicks: Math.round(s?.clicks ?? 0),
           total_impressions: Math.round(s?.impressions ?? 0),
           avg_position: s?.position ? Number(s.position.toFixed(2)) : null,
@@ -316,12 +326,27 @@ export class PositioningService implements OnModuleInit {
             position: Number((r.position ?? 0).toFixed(1)),
           })),
         };
+
+        // Salva o siteUrl descoberto automaticamente para evitar re-tentativas futuras
+        if (!client.gsc_site_url && result.total_impressions > 0) {
+          await this.dataSource.query(
+            `UPDATE crm.clients SET gsc_site_url = $1 WHERE id = $2 AND gsc_site_url IS NULL`,
+            [siteUrl, (client as any).id],
+          );
+        }
+
+        if (!best || result.total_impressions > best.total_impressions) {
+          best = result;
+        }
+
+        // Se já encontrou dados reais, não precisa tentar outros formatos
+        if (result.total_impressions > 0) break;
       } catch {
         continue;
       }
     }
 
-    return {
+    return best ?? {
       total_clicks: 0,
       total_impressions: 0,
       avg_position: null,
