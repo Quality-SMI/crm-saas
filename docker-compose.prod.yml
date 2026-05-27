@@ -1,0 +1,57 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm-backend
+    restart: unless-stopped
+    env_file: ./backend/.env.production
+    networks:
+      - crm-internal
+      - coolify
+    labels:
+      - "coolify.managed=true"
+
+  redis:
+    image: redis:7-alpine
+    container_name: crm-redis
+    restart: unless-stopped
+    networks:
+      - crm-internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ""
+    container_name: crm-frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_API_PROXY_TARGET=http://backend:3000
+    networks:
+      - crm-internal
+      - coolify
+    depends_on:
+      - backend
+      - redis
+    labels:
+      - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.gzip.compress=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.http-crm-frontend.entryPoints=http"
+      - "traefik.http.routers.http-crm-frontend.middlewares=redirect-to-https"
+      - "traefik.http.routers.http-crm-frontend.rule=Host(`sistema.qualitysmi.com.br`) && PathPrefix(`/`)"
+      - "traefik.http.routers.https-crm-frontend.entryPoints=https"
+      - "traefik.http.routers.https-crm-frontend.middlewares=gzip"
+      - "traefik.http.routers.https-crm-frontend.rule=Host(`sistema.qualitysmi.com.br`) && PathPrefix(`/`)"
+      - "traefik.http.routers.https-crm-frontend.tls=true"
+      - "traefik.http.routers.https-crm-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.crm-frontend.loadbalancer.server.port=3001"
+
+networks:
+  crm-internal:
+    driver: bridge
+  coolify:
+    external: true

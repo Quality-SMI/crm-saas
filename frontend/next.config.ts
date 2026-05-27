@@ -26,7 +26,8 @@ const securityHeaders = [
 ];
 
 const isDev = process.env.NODE_ENV !== "production";
-const devApiTarget = process.env.NEXT_DEV_API_PROXY || "http://localhost:3000";
+// Em dev: localhost:3000 / Em prod: serviço interno do Docker (backend:3000)
+const apiTarget = process.env.NEXT_API_PROXY_TARGET || (isDev ? "http://localhost:3000" : "http://backend:3000");
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -38,11 +39,9 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   async rewrites() {
-    // Em dev, /api/* é proxiado para o backend local — mantém cookies same-origin
-    // para o proxy.ts conseguir enxergar refresh_token / access_token.
-    if (!isDev) return [];
+    // /api/* proxiado para o backend — mantém cookies same-origin e evita CSP violations
     return [
-      { source: "/api/:path*", destination: `${devApiTarget}/api/:path*` },
+      { source: "/api/:path*", destination: `${apiTarget}/api/:path*` },
     ];
   },
 };
