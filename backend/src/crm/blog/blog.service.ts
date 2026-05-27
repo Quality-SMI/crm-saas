@@ -169,6 +169,15 @@ export class BlogService {
     return this.authorRepo.save(author);
   }
 
+  async updateAuthor(id: string, dto: CreateAuthorDto): Promise<BlogAuthor> {
+    const author = await this.authorRepo.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
+    if (!author) throw new NotFoundException('Autor não encontrado');
+    Object.assign(author, dto);
+    return this.authorRepo.save(author);
+  }
+
   async removeAuthor(id: string): Promise<void> {
     const author = await this.authorRepo.findOne({
       where: { id, deleted_at: IsNull() },

@@ -122,6 +122,15 @@ export class BlogController {
     );
   }
 
+  @Patch('authors/:id')
+  @Roles(...ALL_ROLES)
+  async updateAuthor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateAuthorDto,
+  ) {
+    return new ResponseDto(await this.svc.updateAuthor(id, dto), 'Autor atualizado');
+  }
+
   @Delete('authors/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(...MANAGER_ROLES)

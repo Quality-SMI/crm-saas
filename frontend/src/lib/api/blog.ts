@@ -88,6 +88,10 @@ export const blogApi = {
     return apiClient.post<{ data: BlogAuthor }>(`/blog/clients/${clientId}/authors`, { name, bio, avatar_url, profile_url }).then((r: AxiosResponse<{ data: BlogAuthor }>) => r.data.data);
   },
 
+  updateAuthor(id: string, data: { name: string; bio?: string; avatar_url?: string; profile_url?: string }): Promise<BlogAuthor> {
+    return apiClient.patch<{ data: BlogAuthor }>(`/blog/authors/${id}`, data).then((r: AxiosResponse<{ data: BlogAuthor }>) => r.data.data);
+  },
+
   deleteAuthor(id: string): Promise<void> {
     return apiClient.delete(`/blog/authors/${id}`).then(() => undefined);
   },
