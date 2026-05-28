@@ -254,10 +254,17 @@ export class PositioningService implements OnModuleInit {
 
   private async fetchSearchConsole(
     auth: Auth.OAuth2Client,
-    client: { domain: string; gsc_site_url?: string },
+    client: { domain: string; gsc_site_url?: string; id?: string },
     startDate: string,
     endDate: string,
-  ) {
+  ): Promise<{
+    total_clicks: number;
+    total_impressions: number;
+    avg_position: number | null;
+    avg_ctr: number | null;
+    keywords: Array<{ query: string; clicks: number; impressions: number; position: number; ctr: number }>;
+    pages: Array<{ page: string; clicks: number; impressions: number; position: number }>;
+  }> {
     const sc = google.webmasters({ version: 'v3', auth });
 
     const domain = (client.domain ?? '').replace(/^www\./, '').toLowerCase();
@@ -276,8 +283,14 @@ export class PositioningService implements OnModuleInit {
       if (url && !seen.has(url)) { seen.add(url); candidates.push(url); }
     }
 
-    type GscResult = Awaited<ReturnType<PositioningService['fetchSearchConsole']>>;
-    let best: GscResult | null = null;
+    let best: {
+      total_clicks: number;
+      total_impressions: number;
+      avg_position: number | null;
+      avg_ctr: number | null;
+      keywords: Array<{ query: string; clicks: number; impressions: number; position: number; ctr: number }>;
+      pages: Array<{ page: string; clicks: number; impressions: number; position: number }>;
+    } | null = null;
 
     for (const siteUrl of candidates) {
       try {
@@ -307,7 +320,7 @@ export class PositioningService implements OnModuleInit {
         ]);
 
         const s = summary.data.rows?.[0];
-        const result: GscResult = {
+        const result = {
           total_clicks: Math.round(s?.clicks ?? 0),
           total_impressions: Math.round(s?.impressions ?? 0),
           avg_position: s?.position ? Number(s.position.toFixed(2)) : null,
