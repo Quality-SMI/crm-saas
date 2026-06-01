@@ -5,7 +5,30 @@ services:
       dockerfile: Dockerfile
     container_name: crm-backend
     restart: unless-stopped
-    env_file: ./backend/.env.production
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-3000}
+      - APP_URL=${APP_URL}
+      - BACKEND_URL=${BACKEND_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_SCHEMA=${DATABASE_SCHEMA:-crm}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - JWT_ACCESS_EXPIRES_IN=${JWT_ACCESS_EXPIRES_IN:-15m}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      - THROTTLE_TTL=${THROTTLE_TTL:-60}
+      - THROTTLE_LIMIT=${THROTTLE_LIMIT:-100}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
+      - RESEND_FROM_NAME=${RESEND_FROM_NAME}
+      - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET}
+      - WEBHOOK_UNSUBSCRIBE_SECRET=${WEBHOOK_UNSUBSCRIBE_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     networks:
       - crm-internal
       - coolify
