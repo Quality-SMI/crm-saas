@@ -16,6 +16,8 @@ export interface AiQuery {
   category: string | null;
   platform_ids: string[];
   is_active: boolean;
+  last_run_at: string | null;
+  last_result: boolean | null;
   created_at: string;
 }
 

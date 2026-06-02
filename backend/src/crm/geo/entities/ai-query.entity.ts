@@ -40,6 +40,12 @@ export class AiQuery {
   @JoinColumn({ name: 'created_by' })
   created_by_user: User | null;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  last_run_at: Date | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  last_result: boolean | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 }

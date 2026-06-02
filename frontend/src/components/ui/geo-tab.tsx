@@ -1001,7 +1001,29 @@ function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment
                         : <span className="text-xs text-gray-400">Todas as plataformas</span>
                       }
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">Adicionado em {new Date(q.created_at).toLocaleDateString('pt-BR')}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      {q.last_run_at ? (
+                        q.last_result === true ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                            <CheckCircle size={10} /> Encontrado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
+                            <MinusCircle size={10} /> Não encontrado
+                          </span>
+                        )
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">
+                          <RefreshCw size={10} /> Aguardando análise
+                        </span>
+                      )}
+                      {q.last_run_at && (
+                        <span className="text-xs text-gray-400">
+                          última análise {new Date(q.last_run_at).toLocaleDateString('pt-BR')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">Adicionado em {new Date(q.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Tooltip text="Abrir este prompt em uma IA para testar">

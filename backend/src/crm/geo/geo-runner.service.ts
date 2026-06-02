@@ -238,6 +238,12 @@ export class GeoRunnerService {
       analysis = await this.analyzeResponseWithOpenAI(responseText, client);
     }
 
+    // Registra quando o prompt foi executado e se o cliente foi encontrado
+    await this.queryRepo.update(query.id, {
+      last_run_at: new Date(),
+      last_result: analysis.mentioned,
+    });
+
     if (!analysis.mentioned) return false;
 
     const mention = this.mentionRepo.create({
