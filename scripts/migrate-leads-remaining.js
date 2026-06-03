@@ -16,7 +16,7 @@ const path    = require('path');
 require('./node_modules/dotenv').config({ path: path.join(__dirname, '../backend/.env') });
 
 const LEGACY_BASE  = 'http://www.qsmi.net.br';
-const LEGACY_EMAIL = 'matheus.silveira.qualitysmi@gmail.com';
+const LEGACY_EMAIL = process.env.LEGACY_EMAIL || 'matheus.silveira.qualitysmi@gmail.com';
 const LEGACY_PASS  = process.env.LEGACY_PASSWORD;
 const DB_URL       = process.env.DATABASE_URL;
 const LOG_FILE     = path.join(__dirname, 'migrate-leads.log');

@@ -185,6 +185,10 @@ function CampaignEditor({
   const imgFileRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
   const attachFileRef = useRef<HTMLInputElement>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const nameRef = useRef<HTMLInputElement>(null);
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const fromEmailRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -300,11 +304,20 @@ function CampaignEditor({
   const getHtml = () => editor?.getHTML() ?? '';
 
   const validate = () => {
-    if (!name.trim()) { alert('Informe o nome'); return false; }
-    if (!subject.trim()) { alert('Informe o assunto'); return false; }
-    if (!isTemplateMode && !fromEmail.trim()) { alert('Informe o email de envio'); return false; }
+    const errors: Record<string, string> = {};
+    if (!name.trim()) errors.name = 'Informe o nome da campanha';
+    if (!subject.trim()) errors.subject = 'Informe o assunto';
+    if (!isTemplateMode && !fromEmail.trim()) errors.fromEmail = 'Informe o email de envio';
     const html = getHtml();
-    if (!html || html === '<p></p>') { alert('O corpo do email está vazio'); return false; }
+    if (!html || html === '<p></p>') errors.body = 'O corpo do email está vazio';
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      if (errors.name) nameRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      else if (errors.subject) subjectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      else if (errors.fromEmail) fromEmailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+    setFieldErrors({});
     return true;
   };
 
@@ -411,17 +424,19 @@ function CampaignEditor({
           <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                {isTemplateMode ? 'Nome do template' : 'Nome da campanha'}
+                {isTemplateMode ? 'Nome do template' : 'Nome da campanha'} <span className="text-red-400">*</span>
               </label>
-              <input value={name} onChange={(e) => setName(e.target.value)}
+              <input ref={nameRef} value={name} onChange={(e) => { setName(e.target.value); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: '' })); }}
                 placeholder={isTemplateMode ? 'Ex: Boas-vindas' : 'Ex: Newsletter Maio 2026'}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${fieldErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+              {fieldErrors.name && <p className="text-xs text-red-500 mt-1">{fieldErrors.name}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Assunto</label>
-              <input value={subject} onChange={(e) => setSubject(e.target.value)}
+              <label className="block text-xs font-medium text-gray-500 mb-1">Assunto <span className="text-red-400">*</span></label>
+              <input ref={subjectRef} value={subject} onChange={(e) => { setSubject(e.target.value); if (fieldErrors.subject) setFieldErrors((p) => ({ ...p, subject: '' })); }}
                 placeholder="Linha de assunto que os destinatários verão"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${fieldErrors.subject ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+              {fieldErrors.subject && <p className="text-xs text-red-500 mt-1">{fieldErrors.subject}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
@@ -452,9 +467,10 @@ function CampaignEditor({
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Email</label>
-                  <input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} type="email"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <label className="block text-xs text-gray-400 mb-1">Email <span className="text-red-400">*</span></label>
+                  <input ref={fromEmailRef} value={fromEmail} onChange={(e) => { setFromEmail(e.target.value); if (fieldErrors.fromEmail) setFieldErrors((p) => ({ ...p, fromEmail: '' })); }} type="email"
+                    className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${fieldErrors.fromEmail ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                  {fieldErrors.fromEmail && <p className="text-xs text-red-500 mt-1">{fieldErrors.fromEmail}</p>}
                 </div>
               </div>
               <div>
@@ -513,6 +529,7 @@ function CampaignEditor({
               </TBtn>
             </div>
             <EditorContent editor={editor} />
+            {fieldErrors.body && <p className="text-xs text-red-500 px-1 mt-1">{fieldErrors.body}</p>}
           </div>
 
           {/* Image modal */}
@@ -707,13 +724,13 @@ function CampaignEditor({
 
           {/* Actions */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-2">
-            <button onClick={handleSave} disabled={saving || sending}
+            <button type="button" onClick={handleSave} disabled={saving || sending}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
               <Save size={14} />
               {saving ? 'Salvando…' : isTemplateMode ? 'Salvar template' : existingCampaign ? 'Salvar alterações' : 'Salvar rascunho'}
             </button>
             {!isTemplateMode && (
-              <button onClick={handleSendNow} disabled={saving || sending}
+              <button type="button" onClick={handleSendNow} disabled={saving || sending}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50">
                 <Send size={14} />
                 {sending ? 'Enviando…' : 'Enviar agora'}
