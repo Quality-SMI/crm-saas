@@ -3,9 +3,7 @@ FROM node:22-slim AS build
 WORKDIR /app
 
 ENV NODE_ENV=development \
-    NEXT_TELEMETRY_DISABLED=1 \
-    NEXT_TURBOPACK_USE_WORKER=0 \
-    NODE_OPTIONS="--max-old-space-size=1024"
+    NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
@@ -14,7 +12,7 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN npm run build
+RUN node_modules/.bin/next build --webpack
 
 # ─── Stage 2: runtime (standalone, alpine mínimo) ─────────────────────────────
 FROM node:22-alpine AS runtime
