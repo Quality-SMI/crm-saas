@@ -14,10 +14,7 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN node --version && npm --version && \
-    echo "=== STARTING NEXT BUILD ===" && \
-    npm run build && \
-    echo "=== BUILD SUCCESS ==="
+RUN npm run build
 
 # ─── Stage 2: runtime (standalone, alpine mínimo) ─────────────────────────────
 FROM node:22-alpine AS runtime

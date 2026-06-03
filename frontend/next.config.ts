@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 // Next.js usa inline scripts para hidratação do React — 'unsafe-inline' é necessário.
 // Para um CSP mais restrito em produção, implementar nonces via middleware.
@@ -32,9 +31,6 @@ const apiTarget = process.env.NEXT_API_PROXY_TARGET || (isDev ? "http://localhos
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
-  turbopack: {
-    root: path.resolve(__dirname),
-  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
