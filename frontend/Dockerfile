@@ -1,19 +1,23 @@
-# ─── Stage 1: build (Debian/glibc evita incompatibilidade de binários nativos no Alpine) ─
+# ─── Stage 1: build ──────────────────────────────────────────────────────────
 FROM node:22-slim AS build
 WORKDIR /app
 
 ENV NODE_ENV=development \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_TURBOPACK_USE_WORKER=0 \
+    NODE_OPTIONS="--max-old-space-size=1024"
 
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY . .
 
-# NEXT_PUBLIC_* precisa estar disponível no build pois é injetado no bundle
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN npm run build
+RUN node --version && npm --version && \
+    echo "=== STARTING NEXT BUILD ===" && \
+    npm run build && \
+    echo "=== BUILD SUCCESS ==="
 
 # ─── Stage 2: runtime (standalone, alpine mínimo) ─────────────────────────────
 FROM node:22-alpine AS runtime
@@ -25,7 +29,6 @@ ENV NODE_ENV=production \
 
 RUN addgroup -S app && adduser -S app -G app
 
-# O standalone output é JS puro — roda em qualquer node sem binários nativos
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
