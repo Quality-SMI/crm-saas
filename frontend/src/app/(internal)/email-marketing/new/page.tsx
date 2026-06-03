@@ -187,8 +187,8 @@ function CampaignEditor({
   const [existingCampaign, setExistingCampaign] = useState<EmailCampaign | null>(null);
   const [editorReady, setEditorReady] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
-  const [limitEnabled, setLimitEnabled] = useState(false);
-  const [sendLimit, setSendLimit] = useState(1000);
+  const [limitEnabled, setLimitEnabled] = useState(true);
+  const [sendLimit, setSendLimit] = useState(100);
   const [sendOffset, setSendOffset] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
   const [imgUrl, setImgUrl] = useState('');
@@ -853,133 +853,178 @@ function CampaignEditor({
       </div>
 
       {/* Send modal */}
-      {showSendModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-base font-bold text-gray-900 mb-1">Confirmar envio</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Audiência selecionada:{' '}
-              <strong className="text-gray-800">{totalAudienceCount.toLocaleString('pt-BR')} destinatário{totalAudienceCount !== 1 ? 's' : ''}</strong>
-            </p>
+      {showSendModal && (() => {
+        const total = totalAudienceCount;
+        const batchNum = sendLimit > 0 ? Math.floor(sendOffset / sendLimit) + 1 : 1;
+        const rangeEnd = Math.min(sendOffset + sendLimit, total);
+        const actualCount = Math.max(0, rangeEnd - sendOffset);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+              <h2 className="text-base font-bold text-gray-900 mb-1">Confirmar envio</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Lista com <strong className="text-gray-800">{total.toLocaleString('pt-BR')} destinatário{total !== 1 ? 's' : ''}</strong>
+              </p>
 
-            <label className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer mb-1">
-              <input type="checkbox" checked={limitEnabled} onChange={(e) => setLimitEnabled(e.target.checked)}
-                className="rounded accent-emerald-600" />
-              Limitar quantidade enviada
-            </label>
-            <p className="text-xs text-gray-400 mb-4 ml-6">Útil para envios em lotes de grandes listas</p>
-
-            {limitEnabled && (
-              <div className="space-y-3 mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Enviar para no máximo</label>
-                    <div className="flex items-center gap-2">
-                      <input type="number" value={sendLimit} onChange={(e) => setSendLimit(Math.max(1, Number(e.target.value)))}
-                        min={1} className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <span className="text-xs text-gray-400">destinatários</span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Pular os primeiros</label>
-                    <div className="flex items-center gap-2">
-                      <input type="number" value={sendOffset} onChange={(e) => setSendOffset(Math.max(0, Number(e.target.value)))}
-                        min={0} className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <span className="text-xs text-gray-400">da lista</span>
-                    </div>
-                  </div>
+              {/* Batch size */}
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-600 mb-2">Tamanho da remessa</label>
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {[100, 200, 500, 1000].map((v) => (
+                    <button key={v} type="button"
+                      onClick={() => { setLimitEnabled(true); setSendLimit(v); }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${limitEnabled && sendLimit === v ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-200 text-gray-600 hover:border-emerald-400 hover:text-emerald-700'}`}>
+                      {v.toLocaleString('pt-BR')}
+                    </button>
+                  ))}
+                  <button type="button"
+                    onClick={() => setLimitEnabled(false)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${!limitEnabled ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                    Tudo
+                  </button>
                 </div>
-                <p className="text-xs text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
-                  Envio para os destinatários{' '}
-                  <strong>#{(sendOffset + 1).toLocaleString('pt-BR')}</strong>{' '}
-                  a{' '}
-                  <strong>#{Math.min(sendOffset + sendLimit, totalAudienceCount).toLocaleString('pt-BR')}</strong>
-                  {' '}de {totalAudienceCount.toLocaleString('pt-BR')} no total
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button onClick={() => setShowSendModal(false)} disabled={sending}
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors">
-                Cancelar
-              </button>
-              <button onClick={confirmSend} disabled={sending}
-                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-                <Send size={13} />
-                {sending ? 'Enviando…' : limitEnabled ? `Enviar ${Math.min(sendLimit, Math.max(0, totalAudienceCount - sendOffset)).toLocaleString('pt-BR')}` : 'Enviar tudo'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SEO Blast modal */}
-      {showSeoBlastModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-base font-bold text-gray-900 mb-1">🔍 Confirmar Disparo SEO</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Cada email será gerado individualmente pela IA com análise do site do lead.
-            </p>
-
-            {seoBlastAudience && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 text-sm text-emerald-800">
-                <strong>{seoBlastAudience.withSite.toLocaleString('pt-BR')} leads</strong> com site encontrados
-                {limitEnabled && sendLimit < seoBlastAudience.withSite && (
-                  <span> — enviando para <strong>{sendLimit}</strong></span>
+                {limitEnabled && (
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={sendLimit} min={1}
+                      onChange={(e) => setSendLimit(Math.max(1, Number(e.target.value)))}
+                      className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <span className="text-xs text-gray-400">personalizado</span>
+                  </div>
                 )}
               </div>
-            )}
 
-            <label className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer mb-1">
-              <input type="checkbox" checked={limitEnabled} onChange={(e) => setLimitEnabled(e.target.checked)}
-                className="rounded accent-emerald-600" />
-              Limitar quantidade (recomendado para testar)
-            </label>
-            <p className="text-xs text-gray-400 mb-4 ml-6">Comece com 10–50 para validar antes de enviar em massa</p>
-
-            {limitEnabled && (
-              <div className="space-y-3 mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Enviar para no máximo</label>
-                    <div className="flex items-center gap-2">
-                      <input type="number" value={sendLimit} onChange={(e) => setSendLimit(Math.max(1, Number(e.target.value)))}
-                        min={1} className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <span className="text-xs text-gray-400">leads</span>
-                    </div>
+              {/* Offset / remessa */}
+              {limitEnabled && (
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-2">
+                    Remessa <span className="text-emerald-700 font-bold">#{batchNum}</span>
+                    <span className="text-gray-400 font-normal ml-2">(pular leads já enviados)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={sendOffset} min={0}
+                      onChange={(e) => setSendOffset(Math.max(0, Number(e.target.value)))}
+                      className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <span className="text-xs text-gray-400">leads a pular</span>
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Pular os primeiros</label>
-                    <div className="flex items-center gap-2">
-                      <input type="number" value={sendOffset} onChange={(e) => setSendOffset(Math.max(0, Number(e.target.value)))}
-                        min={0} className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <span className="text-xs text-gray-400">da lista</span>
-                    </div>
-                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Remessa 1 = 0 &nbsp;|&nbsp; Remessa 2 = {sendLimit} &nbsp;|&nbsp; Remessa 3 = {sendLimit * 2} …
+                  </p>
                 </div>
+              )}
+
+              {/* Range indicator */}
+              <div className={`rounded-xl px-4 py-3 mb-4 text-sm font-medium ${limitEnabled ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-amber-50 border border-amber-200 text-amber-800'}`}>
+                {limitEnabled
+                  ? <>Enviando leads <strong>#{(sendOffset + 1).toLocaleString('pt-BR')}</strong> a <strong>#{rangeEnd.toLocaleString('pt-BR')}</strong> — <strong>{actualCount.toLocaleString('pt-BR')} emails</strong></>
+                  : <>Enviando <strong>todos os {total.toLocaleString('pt-BR')} destinatários</strong> de uma vez</>
+                }
               </div>
-            )}
 
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-              ⏱ Estimativa: ~{Math.ceil((limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? 10)) * 12 / 60)} min para {limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? '?')} emails. O processo roda em background.
-            </p>
-
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setShowSeoBlastModal(false)} disabled={sending}
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors">
-                Cancelar
-              </button>
-              <button type="button" onClick={confirmSeoBlast} disabled={sending}
-                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-                <Send size={13} />
-                {sending ? 'Iniciando…' : 'Gerar e Enviar'}
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setShowSendModal(false)} disabled={sending}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                  Cancelar
+                </button>
+                <button type="button" onClick={confirmSend} disabled={sending}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                  <Send size={13} />
+                  {sending ? 'Enviando…' : `Enviar ${(limitEnabled ? actualCount : total).toLocaleString('pt-BR')}`}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
+      {/* SEO Blast modal */}
+      {showSeoBlastModal && (() => {
+        const total = seoBlastAudience?.withSite ?? 0;
+        const batchNum = sendLimit > 0 ? Math.floor(sendOffset / sendLimit) + 1 : 1;
+        const rangeEnd = Math.min(sendOffset + sendLimit, total);
+        const actualCount = limitEnabled ? Math.max(0, rangeEnd - sendOffset) : total;
+        const estMin = Math.ceil(actualCount * 12 / 60);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+              <h2 className="text-base font-bold text-gray-900 mb-1">🔍 Confirmar Disparo SEO</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Cada email é gerado pela IA com análise do site do lead.{' '}
+                {total > 0 && <strong className="text-gray-800">{total.toLocaleString('pt-BR')} leads com site disponíveis.</strong>}
+              </p>
+
+              {/* Batch size */}
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-600 mb-2">Tamanho da remessa</label>
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {[10, 50, 100, 200, 500].map((v) => (
+                    <button key={v} type="button"
+                      onClick={() => { setLimitEnabled(true); setSendLimit(v); }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${limitEnabled && sendLimit === v ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-200 text-gray-600 hover:border-emerald-400 hover:text-emerald-700'}`}>
+                      {v}
+                    </button>
+                  ))}
+                  <button type="button"
+                    onClick={() => setLimitEnabled(false)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${!limitEnabled ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                    Todos
+                  </button>
+                </div>
+                {limitEnabled && (
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={sendLimit} min={1}
+                      onChange={(e) => setSendLimit(Math.max(1, Number(e.target.value)))}
+                      className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <span className="text-xs text-gray-400">personalizado</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Offset / remessa */}
+              {limitEnabled && (
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 mb-2">
+                    Remessa <span className="text-emerald-700 font-bold">#{batchNum}</span>
+                    <span className="text-gray-400 font-normal ml-2">(leads já enviados a pular)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={sendOffset} min={0}
+                      onChange={(e) => setSendOffset(Math.max(0, Number(e.target.value)))}
+                      className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <span className="text-xs text-gray-400">leads a pular</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Remessa 1 = 0 &nbsp;|&nbsp; Remessa 2 = {sendLimit} &nbsp;|&nbsp; Remessa 3 = {sendLimit * 2} …
+                  </p>
+                </div>
+              )}
+
+              {/* Range indicator */}
+              <div className={`rounded-xl px-4 py-3 mb-3 text-sm font-medium ${limitEnabled ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-amber-50 border border-amber-200 text-amber-800'}`}>
+                {limitEnabled
+                  ? <>Leads <strong>#{(sendOffset + 1).toLocaleString('pt-BR')}</strong> a <strong>#{rangeEnd.toLocaleString('pt-BR')}</strong> — <strong>{actualCount} emails</strong></>
+                  : <>Enviando <strong>todos os {total.toLocaleString('pt-BR')} leads</strong> de uma vez</>
+                }
+              </div>
+
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                ⏱ ~{estMin} min estimados. Roda em background — você pode fechar a página.
+              </p>
+
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setShowSeoBlastModal(false)} disabled={sending}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                  Cancelar
+                </button>
+                <button type="button" onClick={confirmSeoBlast} disabled={sending}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                  <Send size={13} />
+                  {sending ? 'Iniciando…' : `Gerar e Enviar ${actualCount.toLocaleString('pt-BR')}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
