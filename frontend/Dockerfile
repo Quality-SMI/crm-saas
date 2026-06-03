@@ -1,14 +1,13 @@
-# ─── Stage 1: deps ──────────────────────────────────────────────────────────
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --no-audit --no-fund
-
-# ─── Stage 2: build ─────────────────────────────────────────────────────────
+# ─── Stage 1: build ─────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
+
+# Força development para que npm ci instale devDependencies e SWC nativo correto
+ENV NODE_ENV=development \
+    NEXT_TELEMETRY_DISABLED=1
+
+COPY package.json package-lock.json* ./
+RUN npm ci --no-audit --no-fund
 COPY . .
 
 # NEXT_PUBLIC_* precisa estar disponível no build pois é injetado no bundle
@@ -17,7 +16,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN npm run build
 
-# ─── Stage 3: runtime (standalone) ──────────────────────────────────────────
+# ─── Stage 2: runtime (standalone) ──────────────────────────────────────────
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
@@ -27,7 +26,6 @@ ENV NODE_ENV=production \
 
 RUN addgroup -S app && adduser -S app -G app
 
-# Standalone output: bundle minimal + node_modules essenciais
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
