@@ -469,6 +469,7 @@ function CampaignEditor({
 
   if (loading) return <div className="text-center py-20 text-sm text-gray-400">Carregando campanha…</div>;
 
+  // v20260603-1808
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <div className="flex items-center gap-3">
