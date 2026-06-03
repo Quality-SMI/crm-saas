@@ -197,6 +197,8 @@ function CampaignEditor({
   const imgFileRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
   const attachFileRef = useRef<HTMLInputElement>(null);
+  const attachSectionRef = useRef<HTMLDivElement>(null);
+  const [attachToast, setAttachToast] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [seoBlastAudience, setSeoBlastAudience] = useState<{ total: number; withSite: number } | null>(null);
   const [showSeoBlastModal, setShowSeoBlastModal] = useState(false);
@@ -325,9 +327,16 @@ function CampaignEditor({
       if (file.size > 5 * 1024 * 1024) { alert(`${file.name} excede 5 MB.`); return; }
       const reader = new FileReader();
       reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1];
+        const result = reader.result as string;
+        const commaIdx = result.indexOf(',');
+        if (commaIdx === -1) { alert(`Não foi possível ler o arquivo ${file.name}.`); return; }
+        const base64 = result.slice(commaIdx + 1);
         setAttachments((prev) => [...prev, { name: file.name, content: base64, type: file.type }]);
+        setAttachToast(`"${file.name}" anexado`);
+        setTimeout(() => setAttachToast(null), 3000);
+        attachSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       };
+      reader.onerror = () => alert(`Erro ao ler o arquivo ${file.name}. Tente novamente.`);
       reader.readAsDataURL(file);
     });
     e.target.value = '';
@@ -801,10 +810,16 @@ function CampaignEditor({
 
           {/* Attachments */}
           {!isTemplateMode && (
-            <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-2">
+            <div ref={attachSectionRef} className="bg-white border border-gray-100 rounded-xl p-4 space-y-2">
               <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
                 <Paperclip size={13} /> Anexos
+                {attachments.length > 0 && (
+                  <span className="ml-auto text-emerald-600 font-semibold">{attachments.length}</span>
+                )}
               </p>
+              {attachToast && (
+                <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1.5">{attachToast}</p>
+              )}
               {attachments.length > 0 && (
                 <div className="space-y-1">
                   {attachments.map((a, i) => (

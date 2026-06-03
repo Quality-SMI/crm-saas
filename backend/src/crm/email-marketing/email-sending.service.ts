@@ -94,7 +94,17 @@ export class EmailSendingService {
       [campaignId],
     );
 
-    const audience = await this.resolveAudience(campaign);
+    let audience: AudienceMember[];
+    try {
+      audience = await this.resolveAudience(campaign);
+    } catch (err) {
+      this.logger.error(`Erro ao resolver audiência para campanha ${campaignId}: ${(err as Error).message}`);
+      await this.dataSource.query(
+        `UPDATE crm.email_campaigns SET status = 'FAILED', updated_at = NOW() WHERE id = $1`,
+        [campaignId],
+      );
+      return;
+    }
 
     const unsubscribeRows = await this.dataSource.query(
       `SELECT email FROM crm.email_unsubscribes`,
