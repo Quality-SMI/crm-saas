@@ -708,23 +708,6 @@ function CampaignEditor({
                     ) : (
                       <div className="text-xs text-emerald-600 animate-pulse">Carregando contagem…</div>
                     )}
-                    <div>
-                      <label className="block text-xs font-semibold text-emerald-800 mb-1">
-                        🧪 Site para análise (teste)
-                      </label>
-                      <input
-                        type="url"
-                        value={testUrl}
-                        onChange={(e) => setTestUrl(e.target.value)}
-                        placeholder="https://seusite.com.br — deixe vazio para usar o site de cada lead"
-                        className="w-full border border-emerald-200 bg-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                      <p className="text-[10px] text-emerald-700 mt-1">
-                        {testUrl.trim()
-                          ? `⚠️ Todos receberão análise de ${testUrl.trim()}`
-                          : 'Quando vazio, cada lead recebe a análise do próprio site cadastrado.'}
-                      </p>
-                    </div>
                     <p className="text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-1 border border-amber-200">
                       ⚠️ O corpo do email será gerado por IA para cada lead. O editor acima é ignorado neste modo.
                     </p>
@@ -774,6 +757,27 @@ function CampaignEditor({
                   </div>
                 )}
               </div>
+
+              {/* Test URL — SEO Blast only */}
+              {isSeoBlast(audienceType) && (
+                <div className="bg-white border-2 border-emerald-300 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                    🧪 Site para análise (opcional)
+                  </p>
+                  <input
+                    type="url"
+                    value={testUrl}
+                    onChange={(e) => setTestUrl(e.target.value)}
+                    placeholder="https://seusite.com.br"
+                    className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[11px] text-emerald-700">
+                    {testUrl.trim()
+                      ? `⚠️ Todos os leads receberão análise de "${testUrl.trim()}"`
+                      : 'Deixe vazio para analisar o site cadastrado de cada lead. Preencha para testar com um site específico.'}
+                  </p>
+                </div>
+              )}
 
               {/* Schedule */}
               <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
@@ -837,14 +841,13 @@ function CampaignEditor({
                   ))}
                 </div>
               )}
-              <button
-                type="button"
-                onClick={() => attachFileRef.current?.click()}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-gray-200 rounded-lg text-xs text-gray-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+              <label
+                htmlFor="attach-file-input"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-gray-200 rounded-lg text-xs text-gray-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
               >
                 <Paperclip size={12} /> Adicionar arquivo
-              </button>
-              <input ref={attachFileRef} type="file" multiple hidden onChange={handleAttachFile} />
+              </label>
+              <input id="attach-file-input" ref={attachFileRef} type="file" multiple className="sr-only" onChange={handleAttachFile} />
               <p className="text-[10px] text-gray-400">Máx. 5 MB por arquivo. PDF, Word, imagens, etc.</p>
             </div>
           )}
