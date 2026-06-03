@@ -1,8 +1,7 @@
-# ─── Stage 1: build ─────────────────────────────────────────────────────────
-FROM node:22-alpine AS build
+# ─── Stage 1: build (Debian/glibc evita incompatibilidade de binários nativos no Alpine) ─
+FROM node:22-slim AS build
 WORKDIR /app
 
-# Força development para que npm ci instale devDependencies e SWC nativo correto
 ENV NODE_ENV=development \
     NEXT_TELEMETRY_DISABLED=1
 
@@ -16,7 +15,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN npm run build
 
-# ─── Stage 2: runtime (standalone) ──────────────────────────────────────────
+# ─── Stage 2: runtime (standalone, alpine mínimo) ─────────────────────────────
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
@@ -26,6 +25,7 @@ ENV NODE_ENV=production \
 
 RUN addgroup -S app && adduser -S app -G app
 
+# O standalone output é JS puro — roda em qualquer node sem binários nativos
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
