@@ -26,7 +26,7 @@ const FOOTER = `
     <span style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:3px;padding:2px 6px;font-size:10px;color:#6b7280;font-weight:600;margin:0 2px;">Meta Partner</span>
     <span style="display:inline-block;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:3px;padding:2px 6px;font-size:10px;color:#6b7280;font-weight:600;margin:0 2px;">+10 Anos de Mercado</span>
   </p>
-  <p style="margin:6px 0 0;font-size:11px;">Atuando no Brasil, EUA, Portugal, Alemanha e outros países</p>
+  <p style="margin:6px 0 0;font-size:11px;">Atuando no Brasil, EUA e China</p>
 </div>`;
 
 function wrapTemplate(content: string): string {
@@ -105,7 +105,7 @@ const TEMPLATES = [
 
 <h2>O que a Quality SMI pode fazer pela {empresa}</h2>
 
-<p>Com mais de <strong>10 anos de experiência</strong> e presença em múltiplos países, desenvolvemos tecnologias proprietárias para:</p>
+<p>Com mais de <strong>10 anos de experiência</strong> e presença em Brasil, EUA e China, desenvolvemos tecnologias proprietárias para:</p>
 
 <ul>
   <li>🎯 Otimizar seu site para aparecer nas respostas de IAs (estratégia GEO)</li>
@@ -151,7 +151,7 @@ const TEMPLATES = [
 
 <h2>Nossa abordagem exclusiva</h2>
 
-<p>Como <strong>Google Partner</strong> e <strong>Meta Partner</strong>, com mais de <strong>10 anos de atuação</strong> no Brasil, EUA, Portugal e outros mercados, a Quality SMI desenvolveu uma metodologia própria que combina:</p>
+<p>Como <strong>Google Partner</strong> e <strong>Meta Partner</strong>, com mais de <strong>10 anos de atuação</strong> no Brasil, EUA e China, a Quality SMI desenvolveu uma metodologia própria que combina:</p>
 
 <ul>
   <li>🧠 <strong>Otimização semântica</strong> — estrutura de conteúdo que IAs reconhecem e citam</li>
@@ -222,7 +222,7 @@ const TEMPLATES = [
 
 <h2>Por que a Quality SMI</h2>
 
-<p>Somos <strong>Google Partner</strong> e <strong>Meta Partner</strong> certificados, com mais de <strong>10 anos</strong> de histórico comprovado em SEO técnico, conteúdo e performance digital. Atendemos empresas no Brasil, Estados Unidos, Portugal, Alemanha e outros mercados.</p>
+<p>Somos <strong>Google Partner</strong> e <strong>Meta Partner</strong> certificados, com mais de <strong>10 anos</strong> de histórico comprovado em SEO técnico, conteúdo e performance digital. Atendemos empresas no Brasil, EUA e China.</p>
 
 <p>Nossa equipe é treinada diretamente pelos programas de certificação do Google — o que significa que aplicamos as melhores práticas antes mesmo de virarem padrão de mercado.</p>
 
@@ -268,16 +268,14 @@ const TEMPLATES = [
   <li>📈 <strong>Benchmarks exclusivos</strong> — dados de performance de todas as indústrias para comparar sua situação</li>
 </ul>
 
-<h2>+10 anos. Múltiplos países.</h2>
+<h2>+10 anos. Brasil, EUA e China.</h2>
 
 <p>Desde que fundamos a Quality SMI, já trabalhamos com empresas no:</p>
 
 <p>
   🇧🇷 <strong>Brasil</strong> &nbsp;|&nbsp;
-  🇺🇸 <strong>Estados Unidos</strong> &nbsp;|&nbsp;
-  🇵🇹 <strong>Portugal</strong> &nbsp;|&nbsp;
-  🇩🇪 <strong>Alemanha</strong> &nbsp;|&nbsp;
-  e outros mercados
+  🇺🇸 <strong>EUA</strong> &nbsp;|&nbsp;
+  🇨🇳 <strong>China</strong>
 </p>
 
 <p>Essa experiência internacional nos deu uma perspectiva única sobre o que funciona — e o que não funciona — em mercados altamente competitivos.</p>

@@ -281,7 +281,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 - Crie uma seção visual com o score (${analysis.score}/100) e os problemas encontrados com ícones ✅/❌/⚠️
 - Mencione os problemas reais encontrados (não invente)
 - Inclua uma seção sobre GEO (visibilidade em ChatGPT, Gemini, Perplexity) como oportunidade
-- Destaque credenciais Quality SMI: Google Partner, Meta Partner, +10 anos, múltiplos países
+- Destaque credenciais Quality SMI: Google Partner, Meta Partner, +10 anos, Brasil, EUA e China
 - Tom: especialista e direto, não vendedor
 - Máximo 450 palavras
 - HTML simples: <h2>, <p>, <ul><li>, <strong>, <a>, <table> — SEM <!DOCTYPE>, <html>, <head> ou <body>
