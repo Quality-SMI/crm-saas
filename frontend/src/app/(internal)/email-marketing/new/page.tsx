@@ -699,6 +699,23 @@ function CampaignEditor({
                     ) : (
                       <div className="text-xs text-emerald-600 animate-pulse">Carregando contagem…</div>
                     )}
+                    <div>
+                      <label className="block text-xs font-semibold text-emerald-800 mb-1">
+                        🧪 Site para análise (teste)
+                      </label>
+                      <input
+                        type="url"
+                        value={testUrl}
+                        onChange={(e) => setTestUrl(e.target.value)}
+                        placeholder="https://seusite.com.br — deixe vazio para usar o site de cada lead"
+                        className="w-full border border-emerald-200 bg-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <p className="text-[10px] text-emerald-700 mt-1">
+                        {testUrl.trim()
+                          ? `⚠️ Todos receberão análise de ${testUrl.trim()}`
+                          : 'Quando vazio, cada lead recebe a análise do próprio site cadastrado.'}
+                      </p>
+                    </div>
                     <p className="text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-1 border border-amber-200">
                       ⚠️ O corpo do email será gerado por IA para cada lead. O editor acima é ignorado neste modo.
                     </p>
@@ -944,22 +961,6 @@ function CampaignEditor({
                 </div>
               </div>
             )}
-
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                🧪 URL de teste <span className="text-gray-400 font-normal">(opcional — substitui o site de cada lead)</span>
-              </label>
-              <input
-                type="url"
-                value={testUrl}
-                onChange={(e) => setTestUrl(e.target.value)}
-                placeholder="https://exemplo.com.br"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              {testUrl.trim() && (
-                <p className="text-xs text-amber-600 mt-1">⚠️ Todos os leads receberão a análise de <strong>{testUrl.trim()}</strong></p>
-              )}
-            </div>
 
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
               ⏱ Estimativa: ~{Math.ceil((limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? 10)) * 12 / 60)} min para {limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? '?')} emails. O processo roda em background.
