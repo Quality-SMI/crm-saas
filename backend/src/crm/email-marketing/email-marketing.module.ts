@@ -8,6 +8,8 @@ import { EmailMarketingService } from './email-marketing.service';
 import { EmailSendingService } from './email-sending.service';
 import { EmailMarketingController } from './email-marketing.controller';
 import { EmailMarketingWebhookController } from './email-marketing-webhook.controller';
+import { SeoAnalysisService } from './seo-analysis.service';
+import { SeoBlastService } from './seo-blast.service';
 
 @Module({
   imports: [
@@ -19,7 +21,7 @@ import { EmailMarketingWebhookController } from './email-marketing-webhook.contr
     ]),
   ],
   controllers: [EmailMarketingController, EmailMarketingWebhookController],
-  providers: [EmailMarketingService, EmailSendingService],
-  exports: [EmailMarketingService, EmailSendingService],
+  providers: [EmailMarketingService, EmailSendingService, SeoAnalysisService, SeoBlastService],
+  exports: [EmailMarketingService, EmailSendingService, SeoAnalysisService, SeoBlastService],
 })
 export class EmailMarketingModule {}

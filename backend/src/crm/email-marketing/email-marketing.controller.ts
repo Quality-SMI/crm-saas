@@ -23,12 +23,14 @@ import { UserRole } from '../../iam/users/enums/user-role.enum';
 import { ResponseDto } from '../../common/dto/response.dto';
 import { EmailMarketingService } from './email-marketing.service';
 import { EmailSendingService } from './email-sending.service';
+import { SeoBlastService } from './seo-blast.service';
 import {
   CreateCampaignBodyDto,
   UpdateCampaignBodyDto,
   CreateTemplateBodyDto,
   UpdateTemplateBodyDto,
   SendCampaignBodyDto,
+  SendSeoBlastBodyDto,
 } from './dto/email-marketing.dto';
 
 const MARKETING_ROLES = [
@@ -46,6 +48,7 @@ export class EmailMarketingController {
   constructor(
     private readonly emailMarketingService: EmailMarketingService,
     private readonly emailSendingService: EmailSendingService,
+    private readonly seoBlastService: SeoBlastService,
   ) {}
 
   // ─── Campaigns ───────────────────────────────────────────────────────────────
@@ -121,6 +124,38 @@ export class EmailMarketingController {
   @Roles(...MARKETING_ROLES)
   async getCampaignStats(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.emailMarketingService.getCampaignStats(id);
+    return new ResponseDto(data);
+  }
+
+  // ─── SEO Blast ────────────────────────────────────────────────────────────────
+
+  @Post('seo-blast')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @Roles(...MARKETING_ROLES)
+  async sendSeoBlast(
+    @Body() dto: SendSeoBlastBodyDto,
+    @CurrentUser() user: any,
+  ) {
+    const result = await this.seoBlastService.createAndSend({
+      name: dto.name,
+      subject: dto.subject,
+      fromName: dto.from_name ?? 'Quality SMI',
+      fromEmail: dto.from_email,
+      replyTo: dto.reply_to,
+      audienceType: dto.audience_type ?? 'seo_blast_all_leads',
+      limit: dto.limit,
+      offset: dto.offset,
+      createdBy: user.id,
+    });
+    return new ResponseDto({ ...result, message: 'Disparo SEO iniciado' });
+  }
+
+  @Get('seo-blast/preview')
+  @Roles(...MARKETING_ROLES)
+  async previewSeoBlastAudience(
+    @Query('audience_type') audienceType: string = 'seo_blast_all_leads',
+  ) {
+    const data = await this.seoBlastService.previewAudience(audienceType);
     return new ResponseDto(data);
   }
 

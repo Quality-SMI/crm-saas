@@ -11,7 +11,11 @@ export type AudienceType =
   | 'negotiation_leads'
   | 'won_leads'
   | 'lost_leads'
-  | 'manual';
+  | 'manual'
+  | 'seo_blast_all_leads'
+  | 'seo_blast_new_leads'
+  | 'seo_blast_qualified_leads'
+  | 'seo_blast_all_active_leads';
 
 export interface EmailAttachment {
   name: string;
@@ -134,6 +138,29 @@ export const emailMarketingApi = {
   },
   deleteTemplate(id: string): Promise<void> {
     return apiClient.delete(`/email-marketing/templates/${id}`).then(() => undefined);
+  },
+
+  // SEO Blast
+  sendSeoBlast(data: {
+    name: string;
+    subject: string;
+    from_name?: string;
+    from_email: string;
+    reply_to?: string;
+    audience_type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ campaignId: string; message: string }> {
+    return apiClient
+      .post<{ data: { campaignId: string; message: string } }>('/email-marketing/seo-blast', data)
+      .then((r) => r.data.data);
+  },
+  previewSeoBlastAudience(audienceType: string): Promise<{ total: number; withSite: number }> {
+    return apiClient
+      .get<{ data: { total: number; withSite: number } }>('/email-marketing/seo-blast/preview', {
+        params: { audience_type: audienceType },
+      })
+      .then((r) => r.data.data);
   },
 
   // Unsubscribes

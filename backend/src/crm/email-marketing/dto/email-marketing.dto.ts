@@ -152,3 +152,36 @@ export class SendCampaignBodyDto {
   @Min(0)
   offset?: number;
 }
+
+export class SendSeoBlastBodyDto {
+  @IsString()
+  name!: string;
+
+  @IsString()
+  subject!: string;
+
+  @IsOptional()
+  @IsString()
+  from_name?: string;
+
+  @IsString()
+  from_email!: string;
+
+  @IsOptional()
+  @IsString()
+  reply_to?: string;
+
+  @IsOptional()
+  @IsString()
+  audience_type?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  limit?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  offset?: number;
+}

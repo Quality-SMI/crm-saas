@@ -47,6 +47,15 @@ const AUDIENCE_OPTIONS: { value: AudienceType; label: string }[] = [
   { value: 'lost_leads',        label: 'Leads perdidos' },
 ];
 
+const SEO_BLAST_OPTIONS: { value: AudienceType; label: string }[] = [
+  { value: 'seo_blast_all_leads',         label: 'Todos os leads com site' },
+  { value: 'seo_blast_new_leads',         label: 'Leads novos com site' },
+  { value: 'seo_blast_qualified_leads',   label: 'Leads qualificados com site' },
+  { value: 'seo_blast_all_active_leads',  label: 'Leads ativos com site (exceto perdidos)' },
+];
+
+const isSeoBlast = (t: AudienceType) => t.startsWith('seo_blast_');
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function TBtn({ onClick, active, title, children }: {
@@ -186,6 +195,8 @@ function CampaignEditor({
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
   const attachFileRef = useRef<HTMLInputElement>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [seoBlastAudience, setSeoBlastAudience] = useState<{ total: number; withSite: number } | null>(null);
+  const [showSeoBlastModal, setShowSeoBlastModal] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const subjectRef = useRef<HTMLInputElement>(null);
   const fromEmailRef = useRef<HTMLInputElement>(null);
@@ -253,13 +264,23 @@ function CampaignEditor({
     }
   }, [parseManualEmails]);
 
-  useEffect(() => { loadAudience(audienceType, manualEmails); }, [audienceType, loadAudience]);
+  useEffect(() => {
+    if (!isSeoBlast(audienceType)) loadAudience(audienceType, manualEmails);
+  }, [audienceType, loadAudience, manualEmails]);
 
   useEffect(() => {
     if (audienceType !== 'manual') return;
     const t = setTimeout(() => loadAudience('manual', manualEmails), 600);
     return () => clearTimeout(t);
   }, [manualEmails, audienceType, loadAudience]);
+
+  useEffect(() => {
+    if (!isSeoBlast(audienceType)) return;
+    setSeoBlastAudience(null);
+    emailMarketingApi.previewSeoBlastAudience(audienceType)
+      .then(setSeoBlastAudience)
+      .catch(() => {});
+  }, [audienceType]);
 
   const insertImage = () => {
     if (!imgUrl.trim() || !editor) return;
@@ -359,6 +380,7 @@ function CampaignEditor({
   };
 
   const handleSendNow = () => {
+    if (isSeoBlast(audienceType)) { setShowSeoBlastModal(true); return; }
     if (!validate()) return;
     setShowSendModal(true);
   };
@@ -393,6 +415,29 @@ function CampaignEditor({
     } finally {
       setSending(false);
       setShowSendModal(false);
+    }
+  };
+
+  const confirmSeoBlast = async () => {
+    setSending(true);
+    try {
+      const opts = limitEnabled ? { limit: sendLimit, offset: sendOffset || undefined } : {};
+      await emailMarketingApi.sendSeoBlast({
+        name: name || `Análise SEO — ${new Date().toLocaleDateString('pt-BR')}`,
+        subject,
+        from_name: fromName,
+        from_email: fromEmail,
+        reply_to: replyTo || undefined,
+        audience_type: audienceType,
+        ...opts,
+      });
+      router.push('/email-marketing');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao iniciar disparo SEO';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setSending(false);
+      setShowSeoBlastModal(false);
     }
   };
 
@@ -605,10 +650,47 @@ function CampaignEditor({
                 </p>
                 <select value={audienceType} onChange={(e) => setAudienceType(e.target.value as AudienceType)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  {AUDIENCE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
+                  <optgroup label="Disparo normal">
+                    {AUDIENCE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🔍 Análise Técnica SEO (IA personalizada)">
+                    {SEO_BLAST_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </optgroup>
                 </select>
+
+                {isSeoBlast(audienceType) && (
+                  <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-200 rounded-xl p-3 space-y-2">
+                    <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                      🤖 Análise Técnica SEO com IA
+                    </p>
+                    <p className="text-[11px] text-emerald-700 leading-relaxed">
+                      Cada lead receberá um email <strong>único e personalizado</strong> com análise do
+                      site deles: falhas de SEO encontradas, score técnico e oportunidade de aparecer
+                      no ChatGPT, Gemini e Perplexity.
+                    </p>
+                    {seoBlastAudience ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-white rounded-lg p-2 text-center">
+                          <div className="text-lg font-bold text-gray-800">{seoBlastAudience.withSite.toLocaleString('pt-BR')}</div>
+                          <div className="text-[10px] text-gray-500">leads com site</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 text-center">
+                          <div className="text-lg font-bold text-gray-400">{(seoBlastAudience.total - seoBlastAudience.withSite).toLocaleString('pt-BR')}</div>
+                          <div className="text-[10px] text-gray-400">sem site (ignorados)</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-emerald-600 animate-pulse">Carregando contagem…</div>
+                    )}
+                    <p className="text-[10px] text-amber-700 bg-amber-50 rounded px-2 py-1 border border-amber-200">
+                      ⚠️ O corpo do email será gerado por IA para cada lead. O editor acima é ignorado neste modo.
+                    </p>
+                  </div>
+                )}
 
                 {audienceType === 'manual' && (
                   <div>
@@ -796,6 +878,73 @@ function CampaignEditor({
                 className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
                 <Send size={13} />
                 {sending ? 'Enviando…' : limitEnabled ? `Enviar ${Math.min(sendLimit, Math.max(0, totalAudienceCount - sendOffset)).toLocaleString('pt-BR')}` : 'Enviar tudo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SEO Blast modal */}
+      {showSeoBlastModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-base font-bold text-gray-900 mb-1">🔍 Confirmar Disparo SEO</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Cada email será gerado individualmente pela IA com análise do site do lead.
+            </p>
+
+            {seoBlastAudience && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 text-sm text-emerald-800">
+                <strong>{seoBlastAudience.withSite.toLocaleString('pt-BR')} leads</strong> com site encontrados
+                {limitEnabled && sendLimit < seoBlastAudience.withSite && (
+                  <span> — enviando para <strong>{sendLimit}</strong></span>
+                )}
+              </div>
+            )}
+
+            <label className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer mb-1">
+              <input type="checkbox" checked={limitEnabled} onChange={(e) => setLimitEnabled(e.target.checked)}
+                className="rounded accent-emerald-600" />
+              Limitar quantidade (recomendado para testar)
+            </label>
+            <p className="text-xs text-gray-400 mb-4 ml-6">Comece com 10–50 para validar antes de enviar em massa</p>
+
+            {limitEnabled && (
+              <div className="space-y-3 mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Enviar para no máximo</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" value={sendLimit} onChange={(e) => setSendLimit(Math.max(1, Number(e.target.value)))}
+                        min={1} className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                      <span className="text-xs text-gray-400">leads</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Pular os primeiros</label>
+                    <div className="flex items-center gap-2">
+                      <input type="number" value={sendOffset} onChange={(e) => setSendOffset(Math.max(0, Number(e.target.value)))}
+                        min={0} className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                      <span className="text-xs text-gray-400">da lista</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+              ⏱ Estimativa: ~{Math.ceil((limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? 10)) * 12 / 60)} min para {limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? '?')} emails. O processo roda em background.
+            </p>
+
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowSeoBlastModal(false)} disabled={sending}
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                Cancelar
+              </button>
+              <button type="button" onClick={confirmSeoBlast} disabled={sending}
+                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                <Send size={13} />
+                {sending ? 'Iniciando…' : 'Gerar e Enviar'}
               </button>
             </div>
           </div>
