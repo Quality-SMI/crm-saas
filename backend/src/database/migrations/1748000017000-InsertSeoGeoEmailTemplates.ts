@@ -115,10 +115,10 @@ const TEMPLATES = [
 </ul>
 
 <p style="text-align:center;margin:28px 0">
-  <a href="https://qualitysmi.com.br/consultoria" class="cta-btn">Ver resultados completos da análise</a>
+  <a href="https://wa.me/5511978344567" class="cta-btn">Ver resultados completos da análise</a>
 </p>
 <p style="text-align:center;margin:0">
-  <a href="https://qualitysmi.com.br/consultoria" class="cta-secondary">Agendar consultoria gratuita de 30min</a>
+  <a href="https://wa.me/5511978344567" class="cta-secondary">Agendar consultoria gratuita de 30min</a>
 </p>
 
 <p style="margin-top:28px">Atenciosamente,<br><strong>Equipe Quality SMI</strong></p>
@@ -171,7 +171,7 @@ const TEMPLATES = [
 </p>
 
 <p style="text-align:center;margin:28px 0">
-  <a href="https://qualitysmi.com.br/consultoria" class="cta-btn">Quero aparecer nas IAs também</a>
+  <a href="https://wa.me/5511978344567" class="cta-btn">Quero aparecer nas IAs também</a>
 </p>
 <p style="text-align:center;font-size:13px;color:#9ca3af;margin:8px 0">Consultoria gratuita — sem compromisso</p>
 
@@ -227,7 +227,7 @@ const TEMPLATES = [
 <p>Nossa equipe é treinada diretamente pelos programas de certificação do Google — o que significa que aplicamos as melhores práticas antes mesmo de virarem padrão de mercado.</p>
 
 <p style="text-align:center;margin:28px 0">
-  <a href="https://qualitysmi.com.br/consultoria" class="cta-btn">Quero corrigir meu SEO agora</a>
+  <a href="https://wa.me/5511978344567" class="cta-btn">Quero corrigir meu SEO agora</a>
 </p>
 <p style="text-align:center;font-size:13px;color:#9ca3af;margin:8px 0">Análise completa + plano de ação em 30 minutos</p>
 
@@ -291,7 +291,7 @@ const TEMPLATES = [
 </div>
 
 <p style="text-align:center;margin:28px 0">
-  <a href="https://qualitysmi.com.br/consultoria" class="cta-btn">Agendar diagnóstico gratuito</a>
+  <a href="https://wa.me/5511978344567" class="cta-btn">Agendar diagnóstico gratuito</a>
 </p>
 <p style="text-align:center;font-size:13px;color:#9ca3af;margin:8px 0">30 minutos — sem compromisso — com especialista certificado Google</p>
 
@@ -357,7 +357,7 @@ const TEMPLATES = [
 <p>Como <strong>Google Partner</strong> e <strong>Meta Partner</strong> com mais de <strong>10 anos no mercado</strong>, a Quality SMI está na posição ideal para guiar essa transição.</p>
 
 <p style="text-align:center;margin:28px 0">
-  <a href="https://qualitysmi.com.br/consultoria" class="cta-btn">Quero ver o plano para a {empresa}</a>
+  <a href="https://wa.me/5511978344567" class="cta-btn">Quero ver o plano para a {empresa}</a>
 </p>
 <p style="text-align:center;font-size:13px;color:#9ca3af;margin:8px 0">Apresentação personalizada baseada na análise do seu site</p>
 
@@ -438,7 +438,7 @@ const TEMPLATES = [
 <p>Tudo isso como <strong>Google Partner</strong> e <strong>Meta Partner</strong>, com mais de <strong>10 anos de resultados comprovados</strong> no Brasil e no exterior.</p>
 
 <p style="text-align:center;margin:28px 0">
-  <a href="https://qualitysmi.com.br/consultoria" class="cta-btn">Quero o diagnóstico GEO + SEO gratuito</a>
+  <a href="https://wa.me/5511978344567" class="cta-btn">Quero o diagnóstico GEO + SEO gratuito</a>
 </p>
 
 <p style="margin-top:28px">Atenciosamente,<br><strong>Equipe Quality SMI</strong></p>

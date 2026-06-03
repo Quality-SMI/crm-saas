@@ -285,7 +285,7 @@ INSTRUÇÕES OBRIGATÓRIAS:
 - Tom: especialista e direto, não vendedor
 - Máximo 450 palavras
 - HTML simples: <h2>, <p>, <ul><li>, <strong>, <a>, <table> — SEM <!DOCTYPE>, <html>, <head> ou <body>
-- CTA final: botão "Agendar consultoria gratuita" com link https://qualitysmi.com.br/consultoria
+- CTA final: botão "Agendar consultoria gratuita" com link https://wa.me/5511978344567
 - Assinatura: Equipe Quality SMI`;
 
     try {
@@ -346,7 +346,7 @@ ${topIssues.map((i) => `  <li><strong>${i.label}</strong> — ${i.detail}</li>`)
 
 <p>Como <strong>Google Partner</strong> e <strong>Meta Partner</strong> com mais de <strong>10 anos de mercado</strong>, podemos mostrar em 30 minutos como posicionar a <strong>${company}</strong> para aparecer onde seus clientes estão buscando.</p>
 
-<p style="text-align:center;margin:24px 0"><a href="https://qualitysmi.com.br/consultoria" style="display:inline-block;background:#e36420;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Agendar consultoria gratuita</a></p>
+<p style="text-align:center;margin:24px 0"><a href="https://wa.me/5511978344567" style="display:inline-block;background:#e36420;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Agendar consultoria gratuita</a></p>
 
 <p>Atenciosamente,<br><strong>Equipe Quality SMI</strong><br>Google Partner · Meta Partner</p>`;
   }
