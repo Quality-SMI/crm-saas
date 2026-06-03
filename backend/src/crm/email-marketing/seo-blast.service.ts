@@ -19,7 +19,9 @@ interface SeoBlastParams {
   fromName: string;
   fromEmail: string;
   replyTo?: string;
-  audienceType: string; // 'all_leads_with_site' | 'new_leads_with_site' | etc.
+  audienceType: string;
+  templateId?: string;
+  templateHtml?: string; // resolved from DB
   limit?: number;
   offset?: number;
   createdBy: string;
@@ -61,14 +63,23 @@ export class SeoBlastService {
   // ─── Public API ───────────────────────────────────────────────────────────────
 
   async createAndSend(params: SeoBlastParams): Promise<{ campaignId: string }> {
+    // Resolver template HTML se template_id fornecido
+    if (params.templateId && !params.templateHtml) {
+      const rows: { html_body: string }[] = await this.dataSource.query(
+        `SELECT html_body FROM crm.email_templates WHERE id = $1 AND deleted_at IS NULL`,
+        [params.templateId],
+      );
+      if (rows.length) params.templateHtml = rows[0].html_body;
+    }
+
     // 1. Criar registro de campanha
     const campaignRows: { id: string }[] = await this.dataSource.query(
       `INSERT INTO crm.email_campaigns
-         (id, name, subject, html_body, from_name, from_email, reply_to, audience_type, status, created_by, created_at, updated_at)
+         (id, name, subject, html_body, from_name, from_email, reply_to, audience_type, template_id, status, created_by, created_at, updated_at)
        VALUES
-         (uuid_generate_v4(), $1, $2, '', $3, $4, $5, $6, 'SENDING', $7, NOW(), NOW())
+         (uuid_generate_v4(), $1, $2, '', $3, $4, $5, $6, $7, 'SENDING', $8, NOW(), NOW())
        RETURNING id`,
-      [params.name, params.subject, params.fromName, params.fromEmail, params.replyTo ?? null, params.audienceType, params.createdBy],
+      [params.name, params.subject, params.fromName, params.fromEmail, params.replyTo ?? null, params.audienceType, params.templateId ?? null, params.createdBy],
     );
     const campaignId = campaignRows[0].id;
 
@@ -176,8 +187,8 @@ export class SeoBlastService {
     // 1. Analisar website
     const analysis = await this.seoAnalysis.analyzeWebsite(lead.website);
 
-    // 2. Gerar corpo do email com OpenAI
-    const htmlBody = await this.generateEmailBody(lead, analysis);
+    // 2. Gerar corpo do email com OpenAI (usando template como base se disponível)
+    const htmlBody = await this.generateEmailBody(lead, analysis, params.templateHtml);
 
     // 3. Inserir recipient
     const recipRows: { id: string }[] = await this.dataSource.query(
@@ -191,7 +202,7 @@ export class SeoBlastService {
     const recipientId = recipRows[0]?.id;
 
     // 4. Montar HTML final com tracking pixel + footer
-    const finalHtml = this.wrapEmail(htmlBody, lead.email, campaignId, recipientId, params);
+    const finalHtml = this.wrapEmail(htmlBody, lead.email, campaignId, recipientId);
 
     // 5. Enviar
     if (!this.resend) {
@@ -225,7 +236,7 @@ export class SeoBlastService {
 
   // ─── Email generation ─────────────────────────────────────────────────────────
 
-  private async generateEmailBody(lead: LeadRow, analysis: SeoAnalysis): Promise<string> {
+  private async generateEmailBody(lead: LeadRow, analysis: SeoAnalysis, templateHtml?: string): Promise<string> {
     const company = lead.company ?? lead.name ?? 'sua empresa';
     const website = analysis.url;
 
@@ -238,6 +249,15 @@ export class SeoBlastService {
       .map((i) => `- [${i.severity.toUpperCase()}] ${i.label}: ${i.detail}`)
       .join('\n');
 
+    // Extrair texto limpo do template para contexto (sem tags HTML)
+    const templateContext = templateHtml
+      ? templateHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 1500)
+      : null;
+
+    const templateInstruction = templateContext
+      ? `\n\nTEMPLATE BASE (adaptar este conteúdo para os dados do lead — manter a estrutura e tom, mas personalizar os detalhes específicos):\n${templateContext}\n`
+      : '';
+
     const prompt = `Você é um especialista em SEO e marketing digital da Quality SMI, escrevendo um email de prospecção PERSONALIZADO em português brasileiro para a empresa "${company}" (site: ${website}).
 
 DADOS DA ANÁLISE TÉCNICA DO SITE:
@@ -249,23 +269,19 @@ DADOS DA ANÁLISE TÉCNICA DO SITE:
 - H1: ${analysis.h1 ? `"${analysis.h1}"` : 'AUSENTE'} (${analysis.h1Count} encontrados)
 - Mobile (viewport): ${analysis.hasViewport ? 'OK' : 'Não configurado'}
 
-PROBLEMAS ENCONTRADOS:
+PROBLEMAS ENCONTRADOS (${analysis.issues.length} total):
 ${issuesList || '- Nenhum problema crítico identificado'}
-
-Escreva um email HTML profissional e persuasivo com:
-1. Saudação personalizada com o nome da empresa
-2. Uma abertura impactante sobre o score SEO deles (ex: "Analisamos o site ${website} e encontramos ${analysis.issues.filter(i => i.severity === 'critical').length} problemas críticos")
-3. Lista visual dos 2-3 problemas mais graves com impacto real (sem jargão técnico desnecessário)
-4. Um parágrafo sobre GEO — visibilidade em IAs como ChatGPT, Google Gemini e Perplexity — e como isso representa uma vantagem competitiva ainda pouco explorada
-5. CTA final: agendar uma consultoria gratuita de 30 min com a Quality SMI
-
-REGRAS:
-- Tom: direto, especialista, útil — não vendedor barato
-- Máximo 350 palavras
-- Use HTML simples: <h2>, <p>, <ul><li>, <strong>, <a>
-- NÃO inclua <!DOCTYPE>, <html>, <head> ou <body> — apenas o conteúdo interno
-- O link do CTA deve ser: https://qualitysmi.com.br/consultoria
-- Termine com uma assinatura simples da equipe Quality SMI`;
+${templateInstruction}
+INSTRUÇÕES:
+- Personalize o email especificamente para "${company}" e "${website}"
+- Mencione os problemas reais encontrados na análise (não invente)
+- Inclua dados sobre GEO (visibilidade em ChatGPT, Gemini, Perplexity)
+- Destaque credenciais Quality SMI: Google Partner, Meta Partner, +10 anos, múltiplos países
+- Tom: especialista e direto, não vendedor
+- Máximo 400 palavras
+- HTML simples: <h2>, <p>, <ul><li>, <strong>, <a> — SEM <!DOCTYPE>, <html>, <head> ou <body>
+- CTA com link: https://qualitysmi.com.br/consultoria
+- Assinatura: Equipe Quality SMI`;
 
     try {
       const completion = await this.openai.chat.completions.create({
@@ -289,7 +305,6 @@ REGRAS:
   }
 
   private fallbackEmailBody(company: string, website: string, analysis: SeoAnalysis): string {
-    const criticals = analysis.issues.filter((i) => i.severity === 'critical');
     const topIssues = analysis.issues.slice(0, 3);
 
     return `
@@ -340,7 +355,6 @@ ${topIssues.map((i) => `  <li><strong>${i.label}</strong> — ${i.detail}</li>`)
     email: string,
     campaignId: string,
     recipientId: string | undefined,
-    params: SeoBlastParams,
   ): string {
     const encodedEmail = encodeURIComponent(email);
     const unsubUrl = `${this.appUrl}/unsubscribe?email=${encodedEmail}&campaign=${campaignId}`;

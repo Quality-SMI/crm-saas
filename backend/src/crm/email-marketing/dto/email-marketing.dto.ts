@@ -176,6 +176,10 @@ export class SendSeoBlastBodyDto {
   audience_type?: string;
 
   @IsOptional()
+  @IsString()
+  template_id?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   limit?: number;

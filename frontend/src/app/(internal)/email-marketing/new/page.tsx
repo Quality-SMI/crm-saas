@@ -222,6 +222,13 @@ function CampaignEditor({
   useEffect(() => {
     if (!editorReady || !editor || !initialTemplate) return;
     editor.commands.setContent(initialTemplate.html_body);
+    // Se for template SEO/GEO, ativar modo SEO Blast automaticamente
+    const SEO_GEO_CATEGORIES = ['prospeccao_seo', 'prospeccao_geo', 'prospeccao_autoridade', 'prospeccao_followup'];
+    if (SEO_GEO_CATEGORIES.includes(initialTemplate.category)) {
+      setAudienceType('seo_blast_all_leads');
+      if (initialTemplate.subject) setSubject(initialTemplate.subject);
+      if (!name) setName(initialTemplate.name);
+    }
   }, [editorReady, editor, initialTemplate]);
 
   // Load existing campaign for editing
@@ -429,6 +436,7 @@ function CampaignEditor({
         from_email: fromEmail,
         reply_to: replyTo || undefined,
         audience_type: audienceType,
+        template_id: initialTemplate?.id,
         ...opts,
       });
       router.push('/email-marketing');

@@ -143,6 +143,7 @@ export class EmailMarketingController {
       fromEmail: dto.from_email,
       replyTo: dto.reply_to,
       audienceType: dto.audience_type ?? 'seo_blast_all_leads',
+      templateId: dto.template_id,
       limit: dto.limit,
       offset: dto.offset,
       createdBy: user.id,

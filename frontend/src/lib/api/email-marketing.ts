@@ -148,6 +148,7 @@ export const emailMarketingApi = {
     from_email: string;
     reply_to?: string;
     audience_type?: string;
+    template_id?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ campaignId: string; message: string }> {
