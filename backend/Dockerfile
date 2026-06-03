@@ -1,10 +1,16 @@
 # ─── Stage 1: build ─────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
 WORKDIR /app
+
+# Força development para que npm ci instale devDependencies (nest CLI etc.)
+ENV NODE_ENV=development
+
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build && npm prune --omit=dev
+# Invoca nest diretamente via node para evitar dependência de PATH
+RUN node node_modules/@nestjs/cli/bin/nest.js build
+RUN npm prune --omit=dev
 
 # ─── Stage 2: runtime ───────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
