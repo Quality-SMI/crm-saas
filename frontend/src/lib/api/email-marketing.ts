@@ -4,6 +4,9 @@ export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'SENT' | 'FAILE
 export type AudienceType =
   | 'all_clients'
   | 'active_clients'
+  | 'silver_clients'
+  | 'gold_clients'
+  | 'diamond_clients'
   | 'all_leads'
   | 'new_leads'
   | 'qualified_leads'
@@ -151,6 +154,7 @@ export const emailMarketingApi = {
     template_id?: string;
     limit?: number;
     offset?: number;
+    test_url?: string;
   }): Promise<{ campaignId: string; message: string }> {
     return apiClient
       .post<{ data: { campaignId: string; message: string } }>('/email-marketing/seo-blast', data)

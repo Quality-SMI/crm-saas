@@ -21,7 +21,8 @@ interface SeoBlastParams {
   replyTo?: string;
   audienceType: string;
   templateId?: string;
-  templateHtml?: string; // resolved from DB
+  templateHtml?: string;
+  testUrl?: string;
   limit?: number;
   offset?: number;
   createdBy: string;
@@ -184,8 +185,9 @@ export class SeoBlastService {
     campaignId: string,
     params: SeoBlastParams,
   ): Promise<void> {
-    // 1. Analisar website
-    const analysis = await this.seoAnalysis.analyzeWebsite(lead.website);
+    // 1. Analisar website (testUrl sobrepõe o site do lead — útil para testes)
+    const urlToAnalyze = params.testUrl ?? lead.website;
+    const analysis = await this.seoAnalysis.analyzeWebsite(urlToAnalyze);
 
     // 2. Gerar corpo do email com OpenAI (usando template como base se disponível)
     const htmlBody = await this.generateEmailBody(lead, analysis, params.templateHtml);
@@ -258,29 +260,32 @@ export class SeoBlastService {
       ? `\n\nTEMPLATE BASE (adaptar este conteúdo para os dados do lead — manter a estrutura e tom, mas personalizar os detalhes específicos):\n${templateContext}\n`
       : '';
 
+    const scoreEmoji = analysis.score >= 70 ? '🟢' : analysis.score >= 40 ? '🟡' : '🔴';
+
     const prompt = `Você é um especialista em SEO e marketing digital da Quality SMI, escrevendo um email de prospecção PERSONALIZADO em português brasileiro para a empresa "${company}" (site: ${website}).
 
 DADOS DA ANÁLISE TÉCNICA DO SITE:
-- Score SEO: ${analysis.score}/100
+- Score SEO: ${analysis.score}/100 ${scoreEmoji}
 - Site acessível: ${analysis.reachable ? 'Sim' : 'Não'}
-- HTTPS: ${analysis.https ? 'Sim' : 'Não'}
-- Título: ${analysis.title ? `"${analysis.title}" (${analysis.titleLength} chars)` : 'AUSENTE'}
-- Meta description: ${analysis.metaDescription ? `"${analysis.metaDescription.substring(0, 80)}..." (${analysis.metaDescriptionLength} chars)` : 'AUSENTE'}
-- H1: ${analysis.h1 ? `"${analysis.h1}"` : 'AUSENTE'} (${analysis.h1Count} encontrados)
-- Mobile (viewport): ${analysis.hasViewport ? 'OK' : 'Não configurado'}
+- HTTPS: ${analysis.https ? 'Sim ✅' : 'Não ❌'}
+- Título: ${analysis.title ? `"${analysis.title}" (${analysis.titleLength} chars)` : 'AUSENTE ❌'}
+- Meta description: ${analysis.metaDescription ? `"${analysis.metaDescription.substring(0, 80)}..." (${analysis.metaDescriptionLength} chars)` : 'AUSENTE ❌'}
+- H1: ${analysis.h1 ? `"${analysis.h1}"` : 'AUSENTE ❌'} (${analysis.h1Count} encontrados)
+- Mobile (viewport): ${analysis.hasViewport ? 'OK ✅' : 'Não configurado ❌'}
 
 PROBLEMAS ENCONTRADOS (${analysis.issues.length} total):
 ${issuesList || '- Nenhum problema crítico identificado'}
 ${templateInstruction}
-INSTRUÇÕES:
-- Personalize o email especificamente para "${company}" e "${website}"
-- Mencione os problemas reais encontrados na análise (não invente)
-- Inclua dados sobre GEO (visibilidade em ChatGPT, Gemini, Perplexity)
+INSTRUÇÕES OBRIGATÓRIAS:
+- O email DEVE MOSTRAR os resultados da análise DENTRO do próprio email — não diga "acesse nosso site para ver"
+- Crie uma seção visual com o score (${analysis.score}/100) e os problemas encontrados com ícones ✅/❌/⚠️
+- Mencione os problemas reais encontrados (não invente)
+- Inclua uma seção sobre GEO (visibilidade em ChatGPT, Gemini, Perplexity) como oportunidade
 - Destaque credenciais Quality SMI: Google Partner, Meta Partner, +10 anos, múltiplos países
 - Tom: especialista e direto, não vendedor
-- Máximo 400 palavras
-- HTML simples: <h2>, <p>, <ul><li>, <strong>, <a> — SEM <!DOCTYPE>, <html>, <head> ou <body>
-- CTA com link: https://qualitysmi.com.br/consultoria
+- Máximo 450 palavras
+- HTML simples: <h2>, <p>, <ul><li>, <strong>, <a>, <table> — SEM <!DOCTYPE>, <html>, <head> ou <body>
+- CTA final: botão "Agendar consultoria gratuita" com link https://qualitysmi.com.br/consultoria
 - Assinatura: Equipe Quality SMI`;
 
     try {
@@ -305,28 +310,43 @@ INSTRUÇÕES:
   }
 
   private fallbackEmailBody(company: string, website: string, analysis: SeoAnalysis): string {
-    const topIssues = analysis.issues.slice(0, 3);
+    const topIssues = analysis.issues.slice(0, 4);
+    const scoreColor = analysis.score >= 70 ? '#16a34a' : analysis.score >= 40 ? '#d97706' : '#dc2626';
 
     return `
-<h2>Analisamos o site da ${company} — encontramos ${analysis.issues.length} pontos de melhoria</h2>
+<h2>Fizemos uma análise técnica do site da ${company}</h2>
 
 <p>Olá,</p>
 
-<p>Nossa equipe analisou <strong>${website}</strong> e identificou oportunidades importantes para melhorar sua visibilidade no Google e nas novas plataformas de IA.</p>
+<p>Nossa equipe analisou <strong>${website}</strong> e encontramos os seguintes resultados:</p>
+
+<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin:16px 0;">
+  <div style="text-align:center;margin-bottom:14px;">
+    <span style="font-size:42px;font-weight:900;color:${scoreColor};">${analysis.score}</span>
+    <span style="font-size:18px;color:#9ca3af;">/100</span>
+    <div style="font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">Score SEO</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tr><td style="padding:5px 8px;color:#374151;">🔒 HTTPS</td><td style="padding:5px 8px;font-weight:600;">${analysis.https ? '<span style="color:#16a34a">✅ Sim</span>' : '<span style="color:#dc2626">❌ Não</span>'}</td></tr>
+    <tr><td style="padding:5px 8px;color:#374151;">📱 Mobile</td><td style="padding:5px 8px;font-weight:600;">${analysis.hasViewport ? '<span style="color:#16a34a">✅ OK</span>' : '<span style="color:#dc2626">❌ Não configurado</span>'}</td></tr>
+    <tr><td style="padding:5px 8px;color:#374151;">🏷️ Título</td><td style="padding:5px 8px;font-weight:600;">${analysis.title ? `<span style="color:#16a34a">✅ OK (${analysis.titleLength} chars)</span>` : '<span style="color:#dc2626">❌ Ausente</span>'}</td></tr>
+    <tr><td style="padding:5px 8px;color:#374151;">📝 Meta description</td><td style="padding:5px 8px;font-weight:600;">${analysis.metaDescription ? `<span style="color:#16a34a">✅ OK</span>` : '<span style="color:#dc2626">❌ Ausente</span>'}</td></tr>
+  </table>
+</div>
 
 ${topIssues.length > 0 ? `
-<h3>⚠️ Principais problemas encontrados:</h3>
+<h3>⚠️ Pontos que precisam de atenção:</h3>
 <ul>
 ${topIssues.map((i) => `  <li><strong>${i.label}</strong> — ${i.detail}</li>`).join('\n')}
 </ul>
-` : '<p>Seu site tem boa base técnica. Podemos ajudar a dar o próximo passo.</p>'}
+` : '<p style="color:#16a34a;font-weight:600;">✅ Seu site tem boa base técnica!</p>'}
 
-<h3>🤖 GEO — Visibilidade nas IAs</h3>
-<p>Além do Google, hoje os consumidores pesquisam diretamente no <strong>ChatGPT, Google Gemini e Perplexity</strong>. Empresas que aparecem nessas plataformas capturam clientes antes mesmo da busca tradicional. Este é um território ainda pouco explorado pelos seus concorrentes.</p>
+<h3>🤖 GEO — Visibilidade em IAs (ChatGPT, Gemini, Perplexity)</h3>
+<p>Além do Google, hoje os consumidores pesquisam diretamente no <strong>ChatGPT, Google Gemini e Perplexity</strong>. Empresas que aparecem nessas plataformas capturam clientes antes mesmo da busca tradicional.</p>
 
-<p>Gostaríamos de te mostrar em 30 minutos como resolver esses pontos e posicionar a <strong>${company}</strong> para aparecer onde seus clientes estão buscando.</p>
+<p>Como <strong>Google Partner</strong> e <strong>Meta Partner</strong> com mais de <strong>10 anos de mercado</strong>, podemos mostrar em 30 minutos como posicionar a <strong>${company}</strong> para aparecer onde seus clientes estão buscando.</p>
 
-<p><a href="https://qualitysmi.com.br/consultoria" style="display:inline-block;background:#e36420;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:15px;">Agendar consultoria gratuita</a></p>
+<p style="text-align:center;margin:24px 0"><a href="https://qualitysmi.com.br/consultoria" style="display:inline-block;background:#e36420;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Agendar consultoria gratuita</a></p>
 
 <p>Atenciosamente,<br><strong>Equipe Quality SMI</strong><br>Google Partner · Meta Partner</p>`;
   }

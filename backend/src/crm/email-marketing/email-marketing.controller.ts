@@ -146,6 +146,7 @@ export class EmailMarketingController {
       templateId: dto.template_id,
       limit: dto.limit,
       offset: dto.offset,
+      testUrl: dto.test_url,
       createdBy: user.id,
     });
     return new ResponseDto({ ...result, message: 'Disparo SEO iniciado' });

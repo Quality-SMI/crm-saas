@@ -34,17 +34,20 @@ const CATEGORY_META: Record<string, { label: string; color: string; bg: string; 
   custom:        { label: 'Personalizado', color: 'text-gray-600',   bg: 'bg-gray-50',   dot: 'bg-gray-300' },
 };
 
-const AUDIENCE_OPTIONS: { value: AudienceType; label: string }[] = [
+const AUDIENCE_OPTIONS: { value: AudienceType; label: string; group?: string }[] = [
   { value: 'manual',            label: '🧪 Destinatários manuais (teste)' },
-  { value: 'all_clients',       label: 'Todos os clientes' },
-  { value: 'active_clients',    label: 'Clientes ativos' },
-  { value: 'all_leads',         label: 'Todos os leads' },
-  { value: 'new_leads',         label: 'Leads novos' },
-  { value: 'qualified_leads',   label: 'Leads qualificados' },
-  { value: 'proposal_leads',    label: 'Leads em proposta' },
-  { value: 'negotiation_leads', label: 'Leads em negociação' },
-  { value: 'won_leads',         label: 'Leads ganhos' },
-  { value: 'lost_leads',        label: 'Leads perdidos' },
+  { value: 'all_clients',       label: 'Todos os clientes',       group: 'Clientes' },
+  { value: 'active_clients',    label: 'Clientes ativos',         group: 'Clientes' },
+  { value: 'diamond_clients',   label: '💎 Diamond (≥ R$3.000)',  group: 'Clientes' },
+  { value: 'gold_clients',      label: '🥇 Gold (R$2.000–3.000)', group: 'Clientes' },
+  { value: 'silver_clients',    label: '🥈 Silver (< R$2.000)',   group: 'Clientes' },
+  { value: 'all_leads',         label: 'Todos os leads',          group: 'Leads' },
+  { value: 'new_leads',         label: 'Leads novos',             group: 'Leads' },
+  { value: 'qualified_leads',   label: 'Leads qualificados',      group: 'Leads' },
+  { value: 'proposal_leads',    label: 'Leads em proposta',       group: 'Leads' },
+  { value: 'negotiation_leads', label: 'Leads em negociação',     group: 'Leads' },
+  { value: 'won_leads',         label: 'Leads ganhos',            group: 'Leads' },
+  { value: 'lost_leads',        label: 'Leads perdidos',          group: 'Leads' },
 ];
 
 const SEO_BLAST_OPTIONS: { value: AudienceType; label: string }[] = [
@@ -197,6 +200,7 @@ function CampaignEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [seoBlastAudience, setSeoBlastAudience] = useState<{ total: number; withSite: number } | null>(null);
   const [showSeoBlastModal, setShowSeoBlastModal] = useState(false);
+  const [testUrl, setTestUrl] = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
   const subjectRef = useRef<HTMLInputElement>(null);
   const fromEmailRef = useRef<HTMLInputElement>(null);
@@ -437,6 +441,7 @@ function CampaignEditor({
         reply_to: replyTo || undefined,
         audience_type: audienceType,
         template_id: initialTemplate?.id,
+        test_url: testUrl.trim() || undefined,
         ...opts,
       });
       router.push('/email-marketing');
@@ -939,6 +944,22 @@ function CampaignEditor({
                 </div>
               </div>
             )}
+
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                🧪 URL de teste <span className="text-gray-400 font-normal">(opcional — substitui o site de cada lead)</span>
+              </label>
+              <input
+                type="url"
+                value={testUrl}
+                onChange={(e) => setTestUrl(e.target.value)}
+                placeholder="https://exemplo.com.br"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              {testUrl.trim() && (
+                <p className="text-xs text-amber-600 mt-1">⚠️ Todos os leads receberão a análise de <strong>{testUrl.trim()}</strong></p>
+              )}
+            </div>
 
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
               ⏱ Estimativa: ~{Math.ceil((limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? 10)) * 12 / 60)} min para {limitEnabled ? sendLimit : (seoBlastAudience?.withSite ?? '?')} emails. O processo roda em background.

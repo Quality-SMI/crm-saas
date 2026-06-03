@@ -188,4 +188,8 @@ export class SendSeoBlastBodyDto {
   @IsInt()
   @Min(0)
   offset?: number;
+
+  @IsOptional()
+  @IsString()
+  test_url?: string;
 }

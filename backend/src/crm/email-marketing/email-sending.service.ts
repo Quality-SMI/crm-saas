@@ -384,6 +384,31 @@ export class EmailSendingService {
            WHERE deleted_at IS NULL AND email IS NOT NULL AND email != ''`,
         );
 
+      case 'silver_clients':
+        return this.dataSource.query(
+          `SELECT email, company_name AS name, id, 'client' AS type
+           FROM crm.clients
+           WHERE deleted_at IS NULL AND email IS NOT NULL AND email != ''
+             AND status = 'ACTIVE' AND monthly_value IS NOT NULL AND monthly_value::numeric < 2000`,
+        );
+
+      case 'gold_clients':
+        return this.dataSource.query(
+          `SELECT email, company_name AS name, id, 'client' AS type
+           FROM crm.clients
+           WHERE deleted_at IS NULL AND email IS NOT NULL AND email != ''
+             AND status = 'ACTIVE' AND monthly_value IS NOT NULL
+             AND monthly_value::numeric >= 2000 AND monthly_value::numeric < 3000`,
+        );
+
+      case 'diamond_clients':
+        return this.dataSource.query(
+          `SELECT email, company_name AS name, id, 'client' AS type
+           FROM crm.clients
+           WHERE deleted_at IS NULL AND email IS NOT NULL AND email != ''
+             AND status = 'ACTIVE' AND monthly_value IS NOT NULL AND monthly_value::numeric >= 3000`,
+        );
+
       case 'all_leads':
         return this.dataSource.query(
           `SELECT contact_email AS email, COALESCE(contact_name, name) AS name, id, 'lead' AS type
