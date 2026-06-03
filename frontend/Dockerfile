@@ -3,7 +3,9 @@ FROM node:22-slim AS build
 WORKDIR /app
 
 ENV NODE_ENV=development \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_TURBOPACK_USE_WORKER=0 \
+    NODE_OPTIONS="--max-old-space-size=1024"
 
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
