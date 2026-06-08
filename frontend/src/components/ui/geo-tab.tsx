@@ -770,7 +770,7 @@ function MentionsTab({
 
 // ─── Prompts Tab ──────────────────────────────────────────────────────────────
 
-function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment }: { clientId: string; platforms: AiPlatform[]; activePlatformId: string | null; clientName: string; segment?: string | null }) {
+function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment, refreshTrigger }: { clientId: string; platforms: AiPlatform[]; activePlatformId: string | null; clientName: string; segment?: string | null; refreshTrigger?: number }) {
   const [queries, setQueries] = useState<AiQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -789,6 +789,8 @@ function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment
   }, [clientId]);
 
   useEffect(() => { load(); }, [load]);
+  // Recarrega quando análise termina
+  useEffect(() => { if (refreshTrigger) load(); }, [refreshTrigger]);
 
   useEffect(() => {
     if (activePlatformId) setSelectedPlatformIds([activePlatformId]);
@@ -1001,20 +1003,25 @@ function PromptsTab({ clientId, platforms, activePlatformId, clientName, segment
                         : <span className="text-xs text-gray-400">Todas as plataformas</span>
                       }
                     </div>
-                    <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       {q.last_run_at ? (
                         q.last_result === true ? (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                            <CheckCircle size={10} /> Encontrado
+                            <CheckCircle size={10} /> Citado
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
-                            <MinusCircle size={10} /> Não encontrado
+                            <MinusCircle size={10} /> Não citado
                           </span>
                         )
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">
                           <RefreshCw size={10} /> Aguardando análise
+                        </span>
+                      )}
+                      {q.mention_count > 0 && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                          {q.mention_count} {q.mention_count === 1 ? 'menção' : 'menções'}
                         </span>
                       )}
                       {q.last_run_at && (
@@ -1281,6 +1288,7 @@ export function GeoTab({ clientId, clientName, segment }: { clientId: string; cl
   const [activePlatformId, setActivePlatformId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<{ started: boolean } | null>(null);
+  const [promptsRefreshTrigger, setPromptsRefreshTrigger] = useState(0);
 
   const loadOverview = () => {
     geoApi.overview(clientId)
@@ -1300,8 +1308,12 @@ export function GeoTab({ clientId, clientName, segment }: { clientId: string; cl
     try {
       const result = await geoApi.run(clientId);
       setRunResult(result);
-      // Recarrega overview após 30s para capturar menções já processadas
-      setTimeout(() => { loadOverview(); setRunning(false); }, 30000);
+      // Recarrega overview e prompts após 30s para capturar menções já processadas
+      setTimeout(() => {
+        loadOverview();
+        setPromptsRefreshTrigger((t) => t + 1);
+        setRunning(false);
+      }, 30000);
     } catch {
       setRunResult({ started: false });
       setRunning(false);
@@ -1402,7 +1414,7 @@ export function GeoTab({ clientId, clientName, segment }: { clientId: string; cl
               : null
       )}
       {activeSubTab === 'mentions'    && <MentionsTab clientId={clientId} platforms={platforms} activePlatformId={activePlatformId} />}
-      {activeSubTab === 'prompts'     && <PromptsTab  clientId={clientId} platforms={platforms} activePlatformId={activePlatformId} clientName={clientName} segment={segment} />}
+      {activeSubTab === 'prompts'     && <PromptsTab  clientId={clientId} platforms={platforms} activePlatformId={activePlatformId} clientName={clientName} segment={segment} refreshTrigger={promptsRefreshTrigger} />}
       {activeSubTab === 'sources'     && <SourcesTab  clientId={clientId} />}
       {activeSubTab === 'competitors' && <CompetitorsTab clientId={clientId} />}
     </div>

@@ -117,11 +117,18 @@ export class GeoService {
 
   // ─── Queries / Prompts ────────────────────────────────────────────────────
 
-  async listQueries(clientId: string): Promise<AiQuery[]> {
-    return this.queryRepo.find({
+  async listQueries(clientId: string): Promise<(AiQuery & { mention_count: number })[]> {
+    const queries = await this.queryRepo.find({
       where: { client_id: clientId },
       order: { created_at: 'DESC' },
     });
+    if (queries.length === 0) return [];
+    const counts = await this.dataSource.query<{ query_id: string; cnt: string }[]>(
+      `SELECT query_id, COUNT(*) AS cnt FROM crm.ai_mentions WHERE query_id = ANY($1) GROUP BY query_id`,
+      [queries.map((q) => q.id)],
+    );
+    const countMap = new Map(counts.map((r) => [r.query_id, Number(r.cnt)]));
+    return queries.map((q) => Object.assign(q, { mention_count: countMap.get(q.id) ?? 0 }));
   }
 
   async createQuery(

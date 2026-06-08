@@ -18,6 +18,7 @@ export interface AiQuery {
   is_active: boolean;
   last_run_at: string | null;
   last_result: boolean | null;
+  mention_count: number;
   created_at: string;
 }
 
