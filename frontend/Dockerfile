@@ -6,7 +6,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json* ./
 RUN NODE_ENV=development npm ci --no-audit --no-fund
-ARG CACHEBUST=1
+ARG CACHEBUST=20260608
 COPY . .
 
 ARG NEXT_PUBLIC_API_URL
