@@ -34,24 +34,43 @@ function log(...args) {
 
 // ─── HTTP ─────────────────────────────────────────────────────────────────────
 
-let cookie = '';
+const cookieJar = {};
 const http = axios.create({ baseURL: LEGACY_BASE, timeout: 30000, maxRedirects: 5 });
-http.interceptors.request.use(cfg => { if (cookie) cfg.headers['Cookie'] = cookie; return cfg; });
+http.interceptors.request.use(cfg => {
+  const cookieStr = Object.entries(cookieJar).map(([k, v]) => `${k}=${v}`).join('; ');
+  if (cookieStr) cfg.headers['Cookie'] = cookieStr;
+  return cfg;
+});
 http.interceptors.response.use(res => {
   const sc = res.headers['set-cookie'];
-  if (sc) cookie = sc.map(c => c.split(';')[0]).join('; ');
+  if (sc) {
+    for (const raw of sc) {
+      const pair = raw.split(';')[0];
+      const eq = pair.indexOf('=');
+      if (eq === -1) continue;
+      const name = pair.substring(0, eq).trim();
+      const val  = pair.substring(eq + 1).trim();
+      // Ignore deletion cookies (value "deleted" or empty after expiry)
+      if (val && val !== 'deleted') cookieJar[name] = val;
+    }
+  }
   return res;
 });
 
 async function legacyLogin() {
-  cookie = '';
+  // Clear session before re-logging
+  for (const key of Object.keys(cookieJar)) delete cookieJar[key];
   const p = new URLSearchParams();
   p.append('dados[email_login]', LEGACY_EMAIL);
   p.append('dados[senha_login]', LEGACY_PASS);
-  await http.post('/login/setLogin/', p.toString(), {
+  const res = await http.post('/login/setLogin/', p.toString(), {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
-  if (!cookie) throw new Error('Login falhou — cookie não recebido');
+  // The login endpoint returns JSON: {"status":true} on success
+  if (res.data && typeof res.data === 'object' && res.data.status === false) {
+    throw new Error(`Login falhou: ${res.data.mensagem || 'resposta negativa'}`);
+  }
+  if (Object.keys(cookieJar).length === 0) throw new Error('Login falhou — cookie não recebido');
   log('✓ Login no sistema legado');
 }
 
@@ -85,8 +104,26 @@ let pg;
 async function dbConnect() {
   if (pg) { try { await pg.end(); } catch (_) {} }
   pg = new PgClient({ connectionString: DB_URL, keepAlive: true, keepAliveInitialDelayMillis: 10000 });
+  pg.on('error', (err) => {
+    log('⚠ pg connection error (will reconnect):', err.message);
+    pg = null;
+  });
   await pg.connect();
   log('✓ Conectado ao PostgreSQL');
+}
+
+async function dbQuery(sql, params) {
+  if (!pg) await dbConnect();
+  try {
+    return await pg.query(sql, params);
+  } catch (err) {
+    if (err.message.includes('terminated') || err.message.includes('ECONNRESET') || err.code === 'ECONNRESET') {
+      log('⚠ Query falhou, reconectando...');
+      await dbConnect();
+      return await pg.query(sql, params);
+    }
+    throw err;
+  }
 }
 
 // ─── helpers (iguais ao migrate-data.js) ─────────────────────────────────────
@@ -234,7 +271,7 @@ async function fetchPage(offset) {
 // ─── Migrate single lead ──────────────────────────────────────────────────────
 
 async function migrateLead(row, users) {
-  const exists = await pg.query('SELECT id FROM crm.leads WHERE legacy_id=$1', [row.token]);
+  const exists = await dbQuery('SELECT id FROM crm.leads WHERE legacy_id=$1', [row.token]);
   if (exists.rows.length) return 'skip';
 
   const d = await getLeadFullData(row.token);
@@ -245,7 +282,7 @@ async function migrateLead(row, users) {
   const createdBy = fuzzyMatchUser(row.listCreator, users);
   const createdAt = d.created_at || new Date();
 
-  const lr = await pg.query(`
+  const lr = await dbQuery(`
     INSERT INTO crm.leads (
       id, name, contact_name, contact_email, contact_phone, website,
       stage, origin, notes, owner_id, created_by, legacy_id,
@@ -261,7 +298,7 @@ async function migrateLead(row, users) {
 
   for (const inter of d.interactions) {
     const userId = fuzzyMatchUser(inter.createdBy, users);
-    await pg.query(
+    await dbQuery(
       `INSERT INTO crm.lead_interactions (id,lead_id,user_id,type,description,created_at)
        VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5)`,
       [lr.rows[0].id, userId, inter.type, inter.description, inter.date || createdAt]
@@ -287,11 +324,11 @@ const START_OFFSET = 0;
   await legacyLogin();
   await dbConnect();
 
-  const users = await pg.query('SELECT id, name FROM iam.users WHERE deleted_at IS NULL AND client_id IS NULL').then(r => r.rows);
+  const users = await dbQuery('SELECT id, name FROM iam.users WHERE deleted_at IS NULL AND client_id IS NULL').then(r => r.rows);
   log(`✓ ${users.length} usuários carregados`);
 
   // Count already migrated
-  const alreadyCount = await pg.query('SELECT COUNT(*) FROM crm.leads WHERE legacy_id IS NOT NULL').then(r => parseInt(r.rows[0].count));
+  const alreadyCount = await dbQuery('SELECT COUNT(*) FROM crm.leads WHERE legacy_id IS NOT NULL').then(r => parseInt(r.rows[0].count));
   log(`✓ Leads já no banco: ${alreadyCount}`);
 
   let offset   = START_OFFSET;
@@ -301,8 +338,8 @@ const START_OFFSET = 0;
   let pageErrors = 0;
 
   while (offset <= LAST_OFFSET) {
-    // Periodically reconnect DB to avoid idle timeout
-    if ((offset / 35) % 500 === 0 && offset > 0) {
+    // Periodically reconnect DB to avoid idle timeout (every 100 pages)
+    if ((offset / 35) % 100 === 0 && offset > 0) {
       await dbConnect().catch(e => log('DB reconnect error:', e.message));
     }
 
