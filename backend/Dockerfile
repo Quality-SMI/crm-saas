@@ -7,7 +7,6 @@ ENV NODE_ENV=development
 
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
-ARG CACHEBUST=20260609
 COPY . .
 # Invoca nest diretamente via node para evitar dependência de PATH
 RUN node node_modules/@nestjs/cli/bin/nest.js build
