@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND:  ghcr.io/quality-smi/crm-backend
+  IMAGE_FRONTEND: ghcr.io/quality-smi/crm-frontend
+
 jobs:
   backend:
     name: Backend (lint + build)
@@ -20,7 +25,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
       - run: npm ci --no-audit --no-fund
-      - run: npm run lint || true   # lint hoje não bloqueia
+      - run: npm run lint || true
       - run: npm run build
 
   frontend:
@@ -42,48 +47,71 @@ jobs:
       - run: npm run lint || true
       - run: npm run build
 
-  docker-build:
-    name: Docker build (smoke)
+  docker-push:
+    name: Build & push Docker images (GHCR)
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    # Só faz push em push para main (não em PRs — PRs usam apenas os jobs de lint/build)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: docker/setup-buildx-action@v3
-      - name: Build backend image
+
+      - name: Build & push backend
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          push: false
-          tags: crm-backend:ci
+          push: true
+          tags: |
+            ${{ env.IMAGE_BACKEND }}:latest
+            ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to:   type=gha,scope=backend,mode=max
-      - name: Build frontend image
+
+      - name: Build & push frontend
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
-          push: false
-          tags: crm-frontend:ci
+          push: true
+          tags: |
+            ${{ env.IMAGE_FRONTEND }}:latest
+            ${{ env.IMAGE_FRONTEND }}:${{ github.sha }}
           build-args: |
-            NEXT_PUBLIC_API_URL=/api
+            NEXT_PUBLIC_API_URL=
           cache-from: type=gha,scope=frontend
           cache-to:   type=gha,scope=frontend,mode=max
 
   deploy:
-    name: Deploy (Coolify force rebuild)
+    name: Deploy (Coolify webhook)
     runs-on: ubuntu-latest
-    needs: [docker-build]
-    # Só deploya em push para main, não em PRs
+    needs: [docker-push]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Trigger Coolify deploy (force rebuild)
+      - name: Trigger Coolify deploy
+        # continue-on-error: o token pode estar expirado — o GitHub App do Coolify
+        # vai disparar o deploy de qualquer forma via webhook do push.
+        # Este step é um safety-net extra; sua falha não deve bloquear o pipeline.
+        continue-on-error: true
         run: |
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
             -X GET \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             "http://145.79.7.208:8000/api/v1/deploy?uuid=kcsw0w8k0gks8o8ksk88kc0w&force=true")
-          echo "Coolify response: $RESPONSE"
-          if [ "$RESPONSE" -ne 200 ] && [ "$RESPONSE" -ne 201 ] && [ "$RESPONSE" -ne 202 ]; then
-            echo "Deploy trigger failed with status $RESPONSE"
-            exit 1
+          echo "Coolify webhook response: $RESPONSE"
+          if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 201 ] || [ "$RESPONSE" -eq 202 ]; then
+            echo "Coolify deploy acionado com sucesso."
+          else
+            echo "AVISO: Coolify webhook retornou $RESPONSE (token expirado?)."
+            echo "O GitHub App do Coolify vai disparar o deploy automaticamente pelo push."
           fi
-          echo "Deploy triggered successfully"

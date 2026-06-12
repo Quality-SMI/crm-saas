@@ -1,8 +1,6 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/quality-smi/crm-backend:latest
     container_name: crm-backend
     restart: unless-stopped
     environment:
@@ -43,11 +41,7 @@ services:
       - crm-internal
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ""
+    image: ghcr.io/quality-smi/crm-frontend:latest
     container_name: crm-frontend
     restart: unless-stopped
     environment:
