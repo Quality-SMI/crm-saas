@@ -114,6 +114,9 @@ export const usersApi = {
   list(params: UsersQuery = {}): Promise<PaginatedUsers> {
     return apiClient.get<PaginatedUsers>('/users', { params }).then((r: AxiosResponse<PaginatedUsers>) => r.data);
   },
+  assignees(): Promise<{ id: string; name: string }[]> {
+    return apiClient.get<{ id: string; name: string }[]>('/users/assignees').then((r: AxiosResponse<{ id: string; name: string }[]>) => r.data);
+  },
   get(id: string): Promise<{ data: AppUser }> {
     return apiClient.get<{ data: AppUser }>(`/users/${id}`).then((r: AxiosResponse<{ data: AppUser }>) => r.data);
   },

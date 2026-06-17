@@ -46,6 +46,15 @@ export class UsersController {
     return this.usersService.findAll(query);
   }
 
+  @Get('assignees')
+  @Roles(
+    UserRole.SUPER_ADMIN, UserRole.DIRECTOR, UserRole.MANAGER,
+    UserRole.FINANCIAL, UserRole.TECHNICAL, UserRole.WRITER, UserRole.SALES,
+  )
+  async findAssignees() {
+    return this.usersService.findAssignees();
+  }
+
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.DIRECTOR)
   async findOne(@Param('id', ParseUUIDPipe) id: string) {

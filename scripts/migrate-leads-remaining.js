@@ -11,6 +11,7 @@
 const axios   = require('./node_modules/axios').default;
 const cheerio = require('./node_modules/cheerio');
 const { Client: PgClient } = require('./node_modules/pg');
+const http    = require('http');
 const fs      = require('fs');
 const path    = require('path');
 require('./node_modules/dotenv').config({ path: path.join(__dirname, '../backend/.env') });
@@ -35,13 +36,14 @@ function log(...args) {
 // ─── HTTP ─────────────────────────────────────────────────────────────────────
 
 const cookieJar = {};
-const http = axios.create({ baseURL: LEGACY_BASE, timeout: 30000, maxRedirects: 5 });
-http.interceptors.request.use(cfg => {
+const httpAgent = new http.Agent({ keepAlive: false });
+const httpClient = axios.create({ baseURL: LEGACY_BASE, timeout: 30000, maxRedirects: 5, httpAgent });
+httpClient.interceptors.request.use(cfg => {
   const cookieStr = Object.entries(cookieJar).map(([k, v]) => `${k}=${v}`).join('; ');
   if (cookieStr) cfg.headers['Cookie'] = cookieStr;
   return cfg;
 });
-http.interceptors.response.use(res => {
+httpClient.interceptors.response.use(res => {
   const sc = res.headers['set-cookie'];
   if (sc) {
     for (const raw of sc) {
@@ -63,7 +65,7 @@ async function legacyLogin() {
   const p = new URLSearchParams();
   p.append('dados[email_login]', LEGACY_EMAIL);
   p.append('dados[senha_login]', LEGACY_PASS);
-  const res = await http.post('/login/setLogin/', p.toString(), {
+  const res = await httpClient.post('/login/setLogin/', p.toString(), {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
   // The login endpoint returns JSON: {"status":true} on success
@@ -84,10 +86,11 @@ async function fetchWithRetry(fn, maxRetries = 5, label = '') {
     } catch (err) {
       lastErr = err;
       const isNetwork = err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' ||
-                        err.message.includes('socket hang up') || err.message.includes('ECONNREFUSED');
+                        err.code === 'EADDRNOTAVAIL' || err.code === 'ECONNREFUSED' ||
+                        err.message.includes('socket hang up') || err.message.includes('timeout');
       log(`  ⚠ tentativa ${attempt}/${maxRetries} falhou [${label}]: ${err.message.substring(0, 60)}`);
       if (isNetwork && attempt < maxRetries) {
-        const delay = Math.min(2000 * attempt, 10000);
+        const delay = err.code === 'EADDRNOTAVAIL' ? 15000 : Math.min(2000 * attempt, 10000);
         await sleep(delay);
         if (attempt >= 2) { await legacyLogin().catch(() => {}); }
         continue;
@@ -178,7 +181,7 @@ function fuzzyMatchUser(name, users) {
 
 async function getLeadFullData(token) {
   const viewRes = await fetchWithRetry(() =>
-    http.post('/leads/view/', `tk=${token}`, {
+    httpClient.post('/leads/view/', `tk=${token}`, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
     }), 4, `view/${token}`
   );
@@ -210,7 +213,7 @@ async function getLeadFullData(token) {
   });
 
   const editRes = await fetchWithRetry(() =>
-    http.post('/leads/edit/', `tk=${token}`, {
+    httpClient.post('/leads/edit/', `tk=${token}`, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
     }), 4, `edit/${token}`
   );
@@ -258,7 +261,7 @@ function parseLeadRows($) {
 async function fetchPage(offset) {
   const url = offset === 0 ? '/leads' : `/leads/index/${offset}`;
   return fetchWithRetry(async () => {
-    const res = await http.get(url);
+    const res = await httpClient.get(url);
     // Check if redirected to login
     if (res.request?.res?.responseUrl?.includes('/login')) {
       await legacyLogin();

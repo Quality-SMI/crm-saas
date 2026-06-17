@@ -48,6 +48,14 @@ export class UsersService {
     return new PaginatedResponseDto(data, total, query.page, query.limit);
   }
 
+  async findAssignees(): Promise<{ id: string; name: string }[]> {
+    return this.userRepo.find({
+      where: { deleted_at: IsNull(), client_id: IsNull() },
+      order: { name: 'ASC' },
+      select: ['id', 'name'],
+    });
+  }
+
   async findOne(id: string): Promise<User> {
     const user = await this.userRepo.findOne({
       where: { id, deleted_at: IsNull() },

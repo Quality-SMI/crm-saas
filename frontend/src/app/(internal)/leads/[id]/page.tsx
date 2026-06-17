@@ -19,7 +19,7 @@ import {
   ORIGIN_LABELS,
   INTERACTION_LABELS,
 } from '@/lib/api/leads';
-import { usersApi, AppUser } from '@/lib/api/users';
+import { usersApi } from '@/lib/api/users';
 import { useAuthStore } from '@/stores/auth.store';
 import {
   appointmentsApi,
@@ -80,7 +80,7 @@ export default function LeadDetailPage() {
   const canViewFinancial = hasRole('SUPER_ADMIN', 'DIRECTOR', 'MANAGER', 'FINANCIAL') || hasPermission('financial_visibility');
 
   const [lead, setLead] = useState<Lead | null>(null);
-  const [users, setUsers] = useState<AppUser[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -114,11 +114,11 @@ export default function LeadDetailPage() {
   useEffect(() => {
     Promise.all([
       leadsApi.get(id),
-      usersApi.list({ limit: 100 }),
+      usersApi.assignees(),
       appointmentsApi.list({ lead_id: id, limit: 50 }),
-    ]).then(([leadRes, usersRes, apptRes]) => {
+    ]).then(([leadRes, assignees, apptRes]) => {
       setLead(leadRes.data);
-      setUsers(usersRes.data.filter((u) => u.is_active && !u.client_id));
+      setUsers(assignees);
       setAppointments(apptRes.data);
       reset({
         name: leadRes.data.name,
