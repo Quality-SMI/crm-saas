@@ -9,7 +9,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY . .
 # Invoca nest diretamente via node para evitar dependência de PATH
-RUN NODE_OPTIONS="--max-old-space-size=512" node node_modules/@nestjs/cli/bin/nest.js build
+RUN NODE_OPTIONS="--max-old-space-size=384" node node_modules/@nestjs/cli/bin/nest.js build --transpile-only
 RUN npm prune --omit=dev
 
 # ─── Stage 2: runtime ───────────────────────────────────────────────────────
