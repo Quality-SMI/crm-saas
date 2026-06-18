@@ -759,26 +759,69 @@ function CampaignEditor({
                 )}
               </div>
 
-              {/* Test URL — SEO Blast only */}
-              {isSeoBlast(audienceType) && (
-                <div className="bg-white border-2 border-emerald-300 rounded-xl p-4 space-y-2">
-                  <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
-                    🧪 Site para análise (opcional)
-                  </p>
-                  <input
-                    type="url"
-                    value={testUrl}
-                    onChange={(e) => setTestUrl(e.target.value)}
-                    placeholder="https://seusite.com.br"
-                    className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <p className="text-[11px] text-emerald-700">
-                    {testUrl.trim()
-                      ? `⚠️ Todos os leads receberão análise de "${testUrl.trim()}"`
-                      : 'Deixe vazio para analisar o site cadastrado de cada lead. Preencha para testar com um site específico.'}
-                  </p>
+              {/* Site para análise */}
+              <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                  🧪 Site para análise
+                  <span className="ml-auto text-[10px] text-gray-400 font-normal">opcional</span>
+                </p>
+                <input
+                  type="url"
+                  value={testUrl}
+                  onChange={(e) => setTestUrl(e.target.value)}
+                  placeholder="https://seusite.com.br"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  {testUrl.trim()
+                    ? <span className="text-emerald-700">Relatório de auditoria SEO/GEO gerado para <strong>{testUrl.trim()}</strong></span>
+                    : isSeoBlast(audienceType)
+                      ? 'Vazio = analisa o site de cada lead individualmente. Preencha para forçar um site específico.'
+                      : 'Informe um site para incluir relatório de auditoria SEO/GEO no email.'}
+                </p>
+              </div>
+
+              {/* Controle de remessa */}
+              <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                  <Send size={13} /> Controle de remessa
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {(isSeoBlast(audienceType) ? [10, 50, 100, 200, 500] : [100, 200, 500, 1000]).map((v) => (
+                    <button key={v} type="button"
+                      onClick={() => { setLimitEnabled(true); setSendLimit(v); }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${limitEnabled && sendLimit === v ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-200 text-gray-600 hover:border-emerald-400 hover:text-emerald-700'}`}>
+                      {v.toLocaleString('pt-BR')}
+                    </button>
+                  ))}
+                  <button type="button"
+                    onClick={() => setLimitEnabled(false)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${!limitEnabled ? 'bg-gray-700 text-white border-gray-700' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                    Tudo
+                  </button>
                 </div>
-              )}
+                {limitEnabled && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input type="number" value={sendLimit} min={1}
+                        onChange={(e) => setSendLimit(Math.max(1, Number(e.target.value)))}
+                        className="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                      <span className="text-xs text-gray-400">por remessa</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="number" value={sendOffset} min={0}
+                        onChange={(e) => setSendOffset(Math.max(0, Number(e.target.value)))}
+                        className="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                      <span className="text-xs text-gray-400">
+                        a pular — remessa #{Math.floor(sendOffset / sendLimit) + 1}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                      Remessa 1 = 0 &nbsp;|&nbsp; Remessa 2 = {sendLimit} &nbsp;|&nbsp; Remessa 3 = {sendLimit * 2}…
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* Schedule */}
               <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">

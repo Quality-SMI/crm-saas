@@ -52,7 +52,7 @@ export class UsersService {
     return this.userRepo.find({
       where: { deleted_at: IsNull(), client_id: IsNull() },
       order: { name: 'ASC' },
-      select: ['id', 'name'],
+      select: { id: true, name: true },
     });
   }
 
