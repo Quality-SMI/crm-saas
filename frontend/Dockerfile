@@ -11,7 +11,7 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN NODE_OPTIONS="--max-old-space-size=1024" node_modules/.bin/next build --webpack
+RUN NODE_OPTIONS="--max-old-space-size=896" node_modules/.bin/next build --webpack
 
 # ─── Stage 2: runtime (standalone, alpine mínimo) ─────────────────────────────
 FROM node:22-alpine AS runtime
