@@ -53,7 +53,7 @@ jobs:
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
             -X GET \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            "http://145.79.7.208:8000/api/v1/deploy?uuid=kcsw0w8k0gks8o8ksk88kc0w&force=true")
+            "http://145.79.7.208:8000/api/v1/deploy?uuid=lipe9b3n4t7pj2dp6dxnsl61&force=true")
           echo "Coolify response: $RESPONSE"
           if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 201 ] || [ "$RESPONSE" -eq 202 ]; then
             echo "Deploy acionado com sucesso."
