@@ -56,6 +56,7 @@ export class GeoRunnerService {
   private readonly logger = new Logger(GeoRunnerService.name);
   private readonly openai: OpenAI | null;
   private readonly gemini: GoogleGenerativeAI | null;
+  private openaiQuotaExceeded = false;
 
   constructor(
     @InjectRepository(AiQuery) private readonly queryRepo: Repository<AiQuery>,
@@ -84,6 +85,7 @@ export class GeoRunnerService {
 
   @Cron('0 4 * * *')
   async runDaily() {
+    this.openaiQuotaExceeded = false;
     this.logger.log('GEO runner diário iniciado');
     const result = await this.runAll();
     this.logger.log(`GEO runner diário concluído: ${JSON.stringify(result)}`);
@@ -96,6 +98,7 @@ export class GeoRunnerService {
     mentions: number;
     errors: number;
   }> {
+    this.openaiQuotaExceeded = false;
     const queries = await this.queryRepo.find({
       where: { is_active: true },
       relations: { client: true },
@@ -125,6 +128,7 @@ export class GeoRunnerService {
             mentions: r.mentions,
           });
         mentions += r.mentions;
+        errors += r.errors;
         clients++;
       } catch (e) {
         this.logger.error(`Erro cliente ${client.id}: ${(e as Error).message}`);
@@ -167,7 +171,6 @@ export class GeoRunnerService {
     const platforms = await this.platformRepo.find({
       where: { is_active: true },
     });
-    const platformMap = new Map(platforms.map((p) => [p.slug, p]));
 
     let mentions = 0,
       errors = 0;
@@ -179,21 +182,28 @@ export class GeoRunnerService {
 
       for (const platform of targetPlatforms) {
         const needsGemini = GEMINI_GROUNDING_SLUGS.has(platform.slug);
-        const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+        const hasOpenAI = Boolean(process.env.OPENAI_API_KEY) && !this.openaiQuotaExceeded;
         const hasGemini = Boolean(process.env.GEMINI_API_KEY);
 
         // Pula se não tem nenhuma chave disponível
         if (!hasOpenAI && !hasGemini) continue;
         // Plataformas Gemini/AIO precisam de chave Gemini; usa OpenAI como fallback se não tiver
         if (needsGemini && !hasGemini && !hasOpenAI) continue;
+        // Circuit-breaker: pula plataformas OpenAI quando quota foi excedida
+        if (!needsGemini && this.openaiQuotaExceeded) continue;
 
         try {
           const saved = await this.processQuery(client, q, platform);
           if (saved) mentions++;
         } catch (e) {
-          this.logger.error(
-            `Query ${q.id} / ${platform.slug}: ${(e as Error).message}`,
-          );
+          const msg = (e as Error).message;
+          if (msg.includes('429') || msg.toLowerCase().includes('quota')) {
+            this.openaiQuotaExceeded = true;
+            this.logger.warn(
+              `OpenAI quota excedida — pulando todas as plataformas OpenAI restantes nesta execução`,
+            );
+          }
+          this.logger.error(`Query ${q.id} / ${platform.slug}: ${msg}`);
           errors++;
         }
         await this.sleep(1500);
